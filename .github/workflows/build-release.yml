@@ -1,0 +1,61 @@
+name: Build Release
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore PdfSigner.csproj
+      
+    - name: Build
+      run: dotnet build PdfSigner.csproj -c Release --no-restore
+      
+    - name: Run tests
+      run: dotnet test PdfSigner.Tests/PdfSigner.Tests.csproj --no-restore --verbosity normal
+      
+    - name: Publish Release
+      run: dotnet publish PdfSigner.csproj -c Release
+      
+    - name: Get version
+      id: version
+      shell: pwsh
+      run: |
+        $version = "1.0.0"
+        $buildNumber = "${{ github.run_number }}"
+        echo "VERSION=$version.$buildNumber" >> $env:GITHUB_OUTPUT
+        
+    - name: Upload Release Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PdfSigner-v${{ steps.version.outputs.VERSION }}-win-x64
+        path: bin/Release/net8.0/win-x64/publish/PdfSigner.exe
+        retention-days: 90
+        
+    - name: Get executable info
+      shell: pwsh
+      run: |
+        $exePath = "bin/Release/net8.0/win-x64/publish/PdfSigner.exe"
+        if (Test-Path $exePath) {
+          $size = (Get-Item $exePath).Length / 1MB
+          Write-Host "✓ Executable size: $([math]::Round($size, 2)) MB"
+          Write-Host "✓ Build completed successfully!"
+        }

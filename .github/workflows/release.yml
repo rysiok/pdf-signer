@@ -1,0 +1,110 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore PdfSigner.csproj
+      
+    - name: Run tests
+      run: dotnet test PdfSigner.Tests/PdfSigner.Tests.csproj --verbosity normal
+      
+    - name: Publish Release
+      run: dotnet publish PdfSigner.csproj -c Release
+      
+    - name: Get version info
+      id: version
+      shell: pwsh
+      run: |
+        $version = "${{ github.ref_name }}"
+        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          $version = "${{ github.event.inputs.version }}"
+        }
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        
+        # Get executable info
+        $exePath = "bin/Release/net8.0/win-x64/publish/PdfSigner.exe"
+        $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
+        echo "SIZE=$size MB" >> $env:GITHUB_OUTPUT
+        
+        $hash = (Get-FileHash $exePath -Algorithm SHA256).Hash
+        echo "SHA256=$hash" >> $env:GITHUB_OUTPUT
+        
+    - name: Create ZIP archive
+      shell: pwsh
+      run: |
+        $archiveName = "PdfSigner-${{ steps.version.outputs.VERSION }}-win-x64.zip"
+        Compress-Archive -Path "bin/Release/net8.0/win-x64/publish/PdfSigner.exe" -DestinationPath $archiveName
+        echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_OUTPUT
+        
+    - name: Generate release notes
+      id: notes
+      shell: pwsh
+      run: |
+        $notes = @"
+        ## PDF Signer ${{ steps.version.outputs.VERSION }}
+        
+        ### Features
+        - Digital PDF signing using Windows Certificate Store
+        - Single file and batch signing support
+        - Certificate discovery and verification
+        - Support for multiple signatures per document
+        - SERIALNUMBER-based certificate verification
+        
+        ### Download
+        - **File**: PdfSigner.exe
+        - **Size**: ${{ steps.version.outputs.SIZE }}
+        - **SHA256**: ``${{ steps.version.outputs.SHA256 }}``
+        
+        ### Requirements
+        - Windows x64
+        - No .NET installation required (self-contained)
+        
+        ### Usage
+        ``````
+        PdfSigner.exe list
+        PdfSigner.exe sign input.pdf output.pdf "certificate"
+        PdfSigner.exe batch "*.pdf" "output_dir" "certificate"
+        ``````
+        
+        See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for detailed documentation.
+        "@
+        
+        $notes | Out-File -FilePath release-notes.md -Encoding utf8
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: PDF Signer ${{ steps.version.outputs.VERSION }}
+        body_path: release-notes.md
+        files: |
+          PdfSigner-${{ steps.version.outputs.VERSION }}-win-x64.zip
+          bin/Release/net8.0/win-x64/publish/PdfSigner.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
