@@ -6,8 +6,10 @@ This C# console application allows you to digitally sign PDF files using certifi
 
 - **Certificate Discovery**: Automatically finds certificates from Windows Certificate Store (both Current User and Local Machine stores)
 - **PDF Signing**: Signs PDF files with digital signatures using X.509 certificates
+- **Batch Signing**: Sign multiple PDF files at once using pattern matching
 - **Certificate Listing**: Lists all available certificates with their details
 - **Command Line Interface**: Easy-to-use CLI for batch operations
+- **Batch Processing**: Sign multiple PDF files with a single command
 - **Error Handling**: Comprehensive error handling and validation
 
 ## Prerequisites
@@ -49,7 +51,15 @@ This will display certificates from both Current User and Local Machine personal
 To sign a PDF file:
 
 ```bash
-dotnet run sign <input.pdf> <output.pdf> <certificate_identifier> [reason] [location]
+dotnet run sign <input.pdf> <output.pdf> <certificate_subject> [reason] [location]
+```
+
+### Batch Sign Multiple PDF Files
+
+To sign multiple PDF files at once:
+
+```bash
+dotnet run batch <input_pattern> <output_directory> <certificate_subject> [reason] [location] [suffix]
 ```
 
 **Parameters:**
@@ -79,6 +89,10 @@ dotnet run sign contract.pdf signed_contract.pdf "John Doe" "Contract approval" 
 
 # Thumbprint with spaces (also supported)
 dotnet run sign document.pdf signed_document.pdf "A6 B1 49 D4 A2 C7 D5 F3 C5 E7 77 64 0B 65 34 65 2A 67 40 40"
+
+# Batch sign multiple files
+dotnet run batch "*.pdf" "signed_output" "localhost"
+dotnet run batch "documents/*.pdf" "output" "John Doe" "Batch signed" "Office" "-approved"
 ```
 
 ## Certificate Requirements
@@ -154,6 +168,10 @@ sign.bat sign document.pdf signed_document.pdf "A6B149D4A2C7D5F3C5E777640B653465
 
 REM Sign with custom reason and location
 sign.bat sign contract.pdf signed_contract.pdf "John Doe" "Contract signature" "New York"
+
+REM Batch sign multiple PDFs
+sign.bat batch "*.pdf" "signed" "localhost"
+sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch processed" "Office" "-approved"
 ```
 
 The batch script includes:

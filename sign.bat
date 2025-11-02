@@ -31,12 +31,15 @@ if "%~1"=="" (
     echo   list                                         - List all available certificates
     echo   sign input.pdf output.pdf "cert_identifier" - Sign a PDF file
     echo   sign input.pdf output.pdf "cert_identifier" "reason" "location" - Sign with custom reason and location
+    echo   batch "pattern" "output_dir" "cert_identifier" - Sign multiple PDF files
     echo.
     echo Examples:
     echo   sign.bat list
     echo   sign.bat sign document.pdf signed_doc.pdf "localhost"
     echo   sign.bat sign contract.pdf signed_contract.pdf "John Doe" "Contract signature" "New York"
     echo   sign.bat sign document.pdf signed_doc.pdf "A6B149D4A2C7D5F3C5E777640B6534652A674040"
+    echo   sign.bat batch "*.pdf" "signed" "localhost"
+    echo   sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch signed" "Office" "-approved"
     echo.
     echo Certificate identifier options:
     echo   - Subject names: "localhost", "John Doe", "CN=John Doe, O=Company"
@@ -65,6 +68,25 @@ if "%~1"=="sign" (
     )
     if not exist "%~2" (
         echo Error: Input file "%~2" not found
+        exit /b 1
+    )
+)
+
+REM Validate batch command parameters
+if "%~1"=="batch" (
+    if "%~2"=="" (
+        echo Error: Input pattern not specified
+        echo Usage: sign.bat batch "input_pattern" "output_directory" "cert_identifier"
+        exit /b 1
+    )
+    if "%~3"=="" (
+        echo Error: Output directory not specified
+        echo Usage: sign.bat batch "input_pattern" "output_directory" "cert_identifier"
+        exit /b 1
+    )
+    if "%~4"=="" (
+        echo Error: Certificate identifier not specified
+        echo Usage: sign.bat batch "input_pattern" "output_directory" "cert_identifier"
         exit /b 1
     )
 )

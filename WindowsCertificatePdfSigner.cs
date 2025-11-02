@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using iText.Kernel.Pdf;
@@ -36,6 +37,139 @@ namespace PdfSignerApp
 
             // Sign the PDF
             SignPdfWithCertificate(inputPath, outputPath, certificate, reason, location);
+        }
+
+        /// <summary>
+        /// Signs multiple PDF files using a certificate from the Windows certificate store
+        /// </summary>
+        /// <param name="inputPattern">Pattern to match input PDF files (e.g., "*.pdf", "folder/*.pdf")</param>
+        /// <param name="outputDirectory">Directory where signed PDF files will be saved</param>
+        /// <param name="certificateSubject">Subject name, partial subject name, or thumbprint to find the certificate</param>
+        /// <param name="reason">Reason for signing (optional)</param>
+        /// <param name="location">Location of signing (optional)</param>
+        /// <param name="outputSuffix">Suffix to add to output filenames (optional, default: "-sig")</param>
+        public void SignBatch(string inputPattern, string outputDirectory, string certificateSubject, 
+                             string reason = "Document signed", string location = "", string outputSuffix = "-sig")
+        {
+            // Find certificate in Windows certificate store
+            var certificate = FindCertificate(certificateSubject);
+            if (certificate == null)
+            {
+                throw new InvalidOperationException($"Certificate with identifier '{certificateSubject}' not found in certificate store.");
+            }
+
+            Console.WriteLine($"Found certificate: {certificate.Subject}");
+            Console.WriteLine($"Valid from: {certificate.NotBefore} to {certificate.NotAfter}");
+            Console.WriteLine();
+
+            // Create output directory if it doesn't exist
+            if (!Directory.Exists(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+                Console.WriteLine($"Created output directory: {outputDirectory}");
+            }
+
+            // Find matching PDF files
+            var inputFiles = GetMatchingFiles(inputPattern);
+            
+            if (inputFiles.Length == 0)
+            {
+                Console.WriteLine($"No PDF files found matching pattern: {inputPattern}");
+                return;
+            }
+
+            Console.WriteLine($"Found {inputFiles.Length} PDF file(s) to sign");
+            Console.WriteLine();
+
+            // Sign each file
+            int successCount = 0;
+            int failureCount = 0;
+
+            foreach (var inputFile in inputFiles)
+            {
+                try
+                {
+                    var fileName = Path.GetFileNameWithoutExtension(inputFile);
+                    var extension = Path.GetExtension(inputFile);
+                    var outputFileName = $"{fileName}{outputSuffix}{extension}";
+                    var outputFile = Path.Combine(outputDirectory, outputFileName);
+                    
+                    SignPdfWithCertificate(inputFile, outputFile, certificate, reason, location);
+                    
+                    successCount++;
+                    Console.WriteLine($"{Path.GetFileName(inputFile)} -> {outputFileName} - status: signed");
+                }
+                catch (Exception ex)
+                {
+                    failureCount++;
+                    Console.WriteLine($"{Path.GetFileName(inputFile)} -> {Path.GetFileName(inputFile)} - status: failed ({ex.Message})");
+                }
+            }
+
+            // Summary
+            Console.WriteLine("Batch signing completed:");
+            Console.WriteLine($"  ✓ Successful: {successCount}");
+            Console.WriteLine($"  ✗ Failed: {failureCount}");
+            Console.WriteLine($"  📁 Output directory: {outputDirectory}");
+        }
+
+        /// <summary>
+        /// Gets files matching the specified pattern
+        /// </summary>
+        /// <param name="pattern">File pattern (supports wildcards and directory paths)</param>
+        /// <returns>Array of matching file paths</returns>
+        private string[] GetMatchingFiles(string pattern)
+        {
+            try
+            {
+                // Handle different pattern types
+                if (File.Exists(pattern))
+                {
+                    // Single file path
+                    return new[] { pattern };
+                }
+                
+                // Extract directory and search pattern
+                var directory = Path.GetDirectoryName(pattern);
+                var searchPattern = Path.GetFileName(pattern);
+
+                // Use current directory if no directory specified
+                if (string.IsNullOrEmpty(directory))
+                {
+                    directory = Directory.GetCurrentDirectory();
+                }
+
+                // Default to *.pdf if no pattern specified
+                if (string.IsNullOrEmpty(searchPattern))
+                {
+                    searchPattern = "*.pdf";
+                }
+
+                // Ensure we're looking for PDF files
+                if (!searchPattern.Contains('.'))
+                {
+                    searchPattern += "*.pdf";
+                }
+
+                // Search for files
+                if (Directory.Exists(directory))
+                {
+                    return Directory.GetFiles(directory, searchPattern, SearchOption.TopDirectoryOnly)
+                                  .Where(f => f.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                                  .OrderBy(f => f)
+                                  .ToArray();
+                }
+                else
+                {
+                    Console.WriteLine($"Directory not found: {directory}");
+                    return new string[0];
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error searching for files: {ex.Message}");
+                return new string[0];
+            }
         }
 
         /// <summary>
@@ -194,8 +328,6 @@ namespace PdfSignerApp
 
             // Sign the document
             signer.SignDetached(externalSignature, chain, null, null, null, 0, iText.Signatures.PdfSigner.CryptoStandard.CMS);
-
-            Console.WriteLine($"PDF successfully signed and saved to: {outputPath}");
         }
     }
 
