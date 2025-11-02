@@ -12,13 +12,15 @@ This C# console application allows you to digitally sign PDF files using certifi
 - **Command Line Interface**: Easy-to-use CLI for batch operations
 - **Batch Processing**: Sign multiple PDF files with a single command
 - **Standalone Verification**: Verify signatures in existing signed PDF files
-- **Error Handling**: Comprehensive error handling and validation
+- **Exception-Based Error Handling**: Uses exceptions for better library integration and error reporting
+- **Structured Results**: Returns detailed verification results with certificate information
 
 ## Prerequisites
 
 - .NET 8.0 or later
 - Windows operating system (for certificate store access)
 - Valid X.509 certificate with private key in Windows Certificate Store
+- **Certificate must have SERIALNUMBER property in subject DN** (required for verification)
 
 ## Installation
 
@@ -119,10 +121,12 @@ This will:
 ### Verification Features
 
 - **Automatic Verification**: All signed PDFs are automatically verified after signing
-- **Serial Number Validation**: Compares the signing certificate serial number with the PDF signature
+- **SERIALNUMBER Validation**: **Requires** SERIALNUMBER property in certificate subject DN for verification
+- **Serial Number Validation**: Compares the signing certificate SERIALNUMBER with the PDF signature
 - **Integrity Check**: Validates that signatures cover the complete document
 - **Multiple Signatures**: Handles PDFs with multiple signatures
 - **Detailed Reporting**: Shows certificate details and verification status for each signature
+- **Strict Requirements**: Verification fails if SERIALNUMBER property is missing from certificate
 ```
 
 ## Certificate Requirements
@@ -130,9 +134,12 @@ This will:
 The application will look for certificates that:
 1. Have a private key accessible to the current user
 2. Are preferably valid (not expired)
-3. Are located in either:
+3. **Must contain SERIALNUMBER property in subject DN** (e.g., `SERIALNUMBER=PNOPL-76091708291`)
+4. Are located in either:
    - Current User Personal store (`CurrentUser\My`)
    - Local Machine Personal store (`LocalMachine\My`)
+
+**Note**: Verification will fail if the certificate does not have a SERIALNUMBER property in its subject Distinguished Name.
 
 ## How It Works
 

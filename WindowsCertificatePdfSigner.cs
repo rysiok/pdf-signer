@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -40,14 +41,17 @@ namespace PdfSignerApp
             
             // Verify the signature
             Console.WriteLine("Verifying signature...");
-            if (VerifySignature(outputPath, certificate))
+            try
             {
+                var verificationResult = VerifySignature(outputPath, certificate);
+                Console.WriteLine($"  ✓ SERIALNUMBER verified: {verificationResult.SigningCertificateSerialNumber}");
+                Console.WriteLine("  ✓ Signature verified and authenticated");
                 Console.WriteLine("✓ PDF signed and verified successfully");
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("✗ PDF signed but verification failed");
-                throw new InvalidOperationException("Signature verification failed");
+                Console.WriteLine($"✗ PDF signed but verification failed: {ex.Message}");
+                throw new InvalidOperationException("Signature verification failed", ex);
             }
         }
 
@@ -82,7 +86,16 @@ namespace PdfSignerApp
             }
 
             // Find matching PDF files
-            var inputFiles = GetMatchingFiles(inputPattern);
+            string[] inputFiles;
+            try
+            {
+                inputFiles = GetMatchingFiles(inputPattern);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error finding files: {ex.Message}");
+                return;
+            }
             
             if (inputFiles.Length == 0)
             {
@@ -109,15 +122,18 @@ namespace PdfSignerApp
                     SignPdfWithCertificate(inputFile, outputFile, certificate, reason, location);
                     
                     // Verify the signature
-                    if (VerifySignature(outputFile, certificate))
+                    try
                     {
+                        var verificationResult = VerifySignature(outputFile, certificate);
                         successCount++;
+//                        Console.WriteLine($"  ✓ SERIALNUMBER verified: {verificationResult.SigningCertificateSerialNumber}");
+//                        Console.WriteLine($"  ✓ Signature verified and authenticated");
                         Console.WriteLine($"{Path.GetFileName(inputFile)} -> {outputFileName} - status: signed and verified");
                     }
-                    else
+                    catch (Exception verifyEx)
                     {
                         failureCount++;
-                        Console.WriteLine($"{Path.GetFileName(inputFile)} -> {outputFileName} - status: signed but verification failed");
+                        Console.WriteLine($"{Path.GetFileName(inputFile)} -> {outputFileName} - status: signed but verification failed ({verifyEx.Message})");
                     }
                 }
                 catch (Exception ex)
@@ -182,14 +198,12 @@ namespace PdfSignerApp
                 }
                 else
                 {
-                    Console.WriteLine($"Directory not found: {directory}");
-                    return new string[0];
+                    throw new DirectoryNotFoundException($"Directory not found: {directory}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is DirectoryNotFoundException))
             {
-                Console.WriteLine($"Error searching for files: {ex.Message}");
-                return new string[0];
+                throw new InvalidOperationException($"Error searching for files: {ex.Message}", ex);
             }
         }
 
@@ -292,13 +306,28 @@ namespace PdfSignerApp
         /// <summary>
         /// Lists all available certificates in the Windows certificate store
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when certificate store access fails</exception>
         public void ListAvailableCertificates()
         {
             Console.WriteLine("Available certificates in Current User Personal store:");
-            ListCertificatesInStore(StoreLocation.CurrentUser);
+            try
+            {
+                ListCertificatesInStore(StoreLocation.CurrentUser);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  Error accessing Current User store: {ex.Message}");
+            }
             
             Console.WriteLine("\nAvailable certificates in Local Machine Personal store:");
-            ListCertificatesInStore(StoreLocation.LocalMachine);
+            try
+            {
+                ListCertificatesInStore(StoreLocation.LocalMachine);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  Error accessing Local Machine store: {ex.Message}");
+            }
         }
 
         private void ListCertificatesInStore(StoreLocation location)
@@ -320,7 +349,7 @@ namespace PdfSignerApp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  Error accessing store: {ex.Message}");
+                throw new InvalidOperationException($"Error accessing certificate store {location}: {ex.Message}", ex);
             }
             finally
             {
@@ -332,9 +361,16 @@ namespace PdfSignerApp
         /// Verifies the signature of a signed PDF file without requiring the original signing certificate
         /// </summary>
         /// <param name="signedPdfPath">Path to the signed PDF file</param>
-        /// <returns>True if signature is valid, false otherwise</returns>
-        public bool VerifyPdfSignature(string signedPdfPath)
+        /// <returns>Verification result with details</returns>
+        /// <exception cref="InvalidOperationException">Thrown when PDF verification fails</exception>
+        /// <exception cref="FileNotFoundException">Thrown when the PDF file is not found</exception>
+        public PdfVerificationResult VerifyPdfSignature(string signedPdfPath)
         {
+            if (!File.Exists(signedPdfPath))
+            {
+                throw new FileNotFoundException($"PDF file not found: {signedPdfPath}");
+            }
+
             try
             {
                 using var reader = new PdfReader(signedPdfPath);
@@ -345,79 +381,83 @@ namespace PdfSignerApp
                 
                 if (signatureNames.Count == 0)
                 {
-                    Console.WriteLine("✗ No signatures found in the PDF");
-                    return false;
+                    throw new InvalidOperationException("No signatures found in the PDF");
                 }
 
-                Console.WriteLine($"Found {signatureNames.Count} signature(s)");
-                
+                var signatures = new List<SignatureInfo>();
                 bool allValid = true;
                 
                 for (int i = 0; i < signatureNames.Count; i++)
                 {
                     var signatureName = signatureNames[i];
-                    Console.WriteLine($"\nVerifying signature {i + 1}: {signatureName}");
+                    var signatureInfo = new SignatureInfo { Name = signatureName };
                     
-                    var pkcs7 = signatureUtil.ReadSignatureData(signatureName);
+                    try
+                    {
+                        var pkcs7 = signatureUtil.ReadSignatureData(signatureName);
+                        
+                        if (pkcs7 == null)
+                        {
+                            throw new InvalidOperationException($"Could not read signature data for {signatureName}");
+                        }
+
+                        // Verify signature integrity
+                        var signatureCoversWholeDocument = signatureUtil.SignatureCoversWholeDocument(signatureName);
+                        if (!signatureCoversWholeDocument)
+                        {
+                            throw new InvalidOperationException($"Signature {signatureName} does not cover the whole document");
+                        }
+
+                        // Get the signing certificate from the PDF
+                        var signingCerts = pkcs7.GetSignCertificateChain();
+                        if (signingCerts == null || signingCerts.Length == 0)
+                        {
+                            throw new InvalidOperationException($"No signing certificate found in signature {signatureName}");
+                        }
+
+                        var pdfSigningCert = signingCerts[0];
+                        
+                        // Get certificate subject and extract SERIALNUMBER
+                        var certSubject = pdfSigningCert.GetSubjectDN()?.ToString() ?? "Unknown";
+                        var certSerialNumber = ExtractSerialNumberFromSubject(certSubject);
+                        
+                        // SERIALNUMBER property is required for verification
+                        if (string.IsNullOrEmpty(certSerialNumber))
+                        {
+                            throw new InvalidOperationException($"SERIALNUMBER property not found in certificate subject for signature {signatureName} - verification failed");
+                        }
+
+                        // Verify the signature cryptographically
+                        var isValid = pkcs7.VerifySignatureIntegrityAndAuthenticity();
+                        if (!isValid)
+                        {
+                            throw new InvalidOperationException($"Signature integrity verification failed for {signatureName}");
+                        }
+
+                        signatureInfo.IsValid = true;
+                        signatureInfo.CertificateSubject = certSubject;
+                        signatureInfo.SerialNumber = certSerialNumber;
+                    }
+                    catch (Exception ex)
+                    {
+                        signatureInfo.IsValid = false;
+                        signatureInfo.ErrorMessage = ex.Message;
+                        allValid = false;
+                    }
                     
-                    if (pkcs7 == null)
-                    {
-                        Console.WriteLine("  ✗ Could not read signature data");
-                        allValid = false;
-                        continue;
-                    }
-
-                    // Verify signature integrity
-                    var signatureCoversWholeDocument = signatureUtil.SignatureCoversWholeDocument(signatureName);
-                    if (!signatureCoversWholeDocument)
-                    {
-                        Console.WriteLine("  ✗ Signature does not cover the whole document");
-                        allValid = false;
-                        continue;
-                    }
-
-                    // Get the signing certificate from the PDF
-                    var signingCerts = pkcs7.GetSignCertificateChain();
-                    if (signingCerts == null || signingCerts.Length == 0)
-                    {
-                        Console.WriteLine("  ✗ No signing certificate found in signature");
-                        allValid = false;
-                        continue;
-                    }
-
-                    var pdfSigningCert = signingCerts[0];
-                    
-                    // Get certificate subject and extract SERIALNUMBER
-                    var certSubject = pdfSigningCert.GetSubjectDN()?.ToString() ?? "Unknown";
-                    var certSerialNumber = ExtractSerialNumberFromSubject(certSubject);
-
-                    // Verify the signature cryptographically
-                    var isValid = pkcs7.VerifySignatureIntegrityAndAuthenticity();
-                    if (!isValid)
-                    {
-                        Console.WriteLine("  ✗ Signature integrity verification failed");
-                        allValid = false;
-                        continue;
-                    }
-
-                    Console.WriteLine($"  ✓ Signature valid");
-                    Console.WriteLine($"  ✓ Certificate: {certSubject}");
-                    if (!string.IsNullOrEmpty(certSerialNumber))
-                    {
-                        Console.WriteLine($"  ✓ SERIALNUMBER: {certSerialNumber}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"  ✓ SERIALNUMBER: Not present in certificate subject");
-                    }
+                    signatures.Add(signatureInfo);
                 }
                 
-                return allValid;
+                return new PdfVerificationResult 
+                { 
+                    IsValid = allValid, 
+                    Signatures = signatures,
+                    TotalSignatures = signatureNames.Count
+                };
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is InvalidOperationException || ex is FileNotFoundException))
             {
-                Console.WriteLine($"✗ Verification failed: {ex.Message}");
-                return false;
+                throw new InvalidOperationException($"PDF verification failed: {ex.Message}", ex);
             }
         }
 
@@ -450,8 +490,9 @@ namespace PdfSignerApp
         /// </summary>
         /// <param name="signedPdfPath">Path to the signed PDF file</param>
         /// <param name="signingCertificate">The certificate that was used for signing</param>
-        /// <returns>True if signature is valid and serial numbers match, false otherwise</returns>
-        private bool VerifySignature(string signedPdfPath, X509Certificate2 signingCertificate)
+        /// <returns>Verification result with details</returns>
+        /// <exception cref="InvalidOperationException">Thrown when signature verification fails</exception>
+        private SignatureVerificationResult VerifySignature(string signedPdfPath, X509Certificate2 signingCertificate)
         {
             try
             {
@@ -463,8 +504,7 @@ namespace PdfSignerApp
                 
                 if (signatureNames.Count == 0)
                 {
-                    Console.WriteLine("  ✗ No signatures found in the PDF");
-                    return false;
+                    throw new InvalidOperationException("No signatures found in the PDF");
                 }
 
                 // Check the first (latest) signature
@@ -473,24 +513,21 @@ namespace PdfSignerApp
                 
                 if (pkcs7 == null)
                 {
-                    Console.WriteLine("  ✗ Could not read signature data");
-                    return false;
+                    throw new InvalidOperationException("Could not read signature data");
                 }
 
                 // Verify signature integrity
                 var signatureCoversWholeDocument = signatureUtil.SignatureCoversWholeDocument(signatureName);
                 if (!signatureCoversWholeDocument)
                 {
-                    Console.WriteLine("  ✗ Signature does not cover the whole document");
-                    return false;
+                    throw new InvalidOperationException("Signature does not cover the whole document");
                 }
 
                 // Get the signing certificate from the PDF
                 var signingCerts = pkcs7.GetSignCertificateChain();
                 if (signingCerts == null || signingCerts.Length == 0)
                 {
-                    Console.WriteLine("  ✗ No signing certificate found in signature");
-                    return false;
+                    throw new InvalidOperationException("No signing certificate found in signature");
                 }
 
                 var pdfSigningCert = signingCerts[0];
@@ -500,38 +537,44 @@ namespace PdfSignerApp
                 var pdfCertSubject = pdfSigningCert.GetSubjectDN()?.ToString() ?? "";
                 var pdfCertSerialNumber = ExtractSerialNumberFromSubject(pdfCertSubject);
                 
-                // Check SERIALNUMBER property if present in either certificate
-                if (!string.IsNullOrEmpty(signingCertSerialNumber) || !string.IsNullOrEmpty(pdfCertSerialNumber))
+                var result = new SignatureVerificationResult
                 {
-                    if (signingCertSerialNumber != pdfCertSerialNumber)
-                    {
-                        Console.WriteLine($"  ✗ SERIALNUMBER mismatch");
-                        Console.WriteLine($"    Signing cert SERIALNUMBER: '{signingCertSerialNumber}'");
-                        Console.WriteLine($"    PDF cert SERIALNUMBER: '{pdfCertSerialNumber}'");
-                        return false;
-                    }
-                    Console.WriteLine($"  ✓ SERIALNUMBER verified: {signingCertSerialNumber}");
-                }
-                else
+                    IsValid = true,
+                    SigningCertificateSerialNumber = signingCertSerialNumber,
+                    PdfCertificateSerialNumber = pdfCertSerialNumber,
+                    CertificateSubject = pdfCertSubject
+                };
+
+                // SERIALNUMBER property is required for verification
+                if (string.IsNullOrEmpty(signingCertSerialNumber))
                 {
-                    Console.WriteLine($"  ⚠ SERIALNUMBER property not present in certificate subjects - skipping SERIALNUMBER verification");
+                    throw new InvalidOperationException("SERIALNUMBER property not found in signing certificate subject - verification failed");
                 }
+                
+                if (string.IsNullOrEmpty(pdfCertSerialNumber))
+                {
+                    throw new InvalidOperationException("SERIALNUMBER property not found in PDF certificate subject - verification failed");
+                }
+                
+                if (signingCertSerialNumber != pdfCertSerialNumber)
+                {
+                    throw new InvalidOperationException($"SERIALNUMBER mismatch: Signing cert '{signingCertSerialNumber}' vs PDF cert '{pdfCertSerialNumber}'");
+                }
+                
+                result.Message = $"SERIALNUMBER verified: {signingCertSerialNumber}";
 
                 // Verify the signature cryptographically
                 var isValid = pkcs7.VerifySignatureIntegrityAndAuthenticity();
                 if (!isValid)
                 {
-                    Console.WriteLine("  ✗ Signature integrity verification failed");
-                    return false;
+                    throw new InvalidOperationException("Signature integrity verification failed");
                 }
 
-                Console.WriteLine($"  ✓ Signature verified and authenticated");
-                return true;
+                return result;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is InvalidOperationException))
             {
-                Console.WriteLine($"  ✗ Verification failed: {ex.Message}");
-                return false;
+                throw new InvalidOperationException($"Verification failed: {ex.Message}", ex);
             }
         }
 
@@ -620,5 +663,39 @@ namespace PdfSignerApp
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Result of PDF signature verification
+    /// </summary>
+    public class PdfVerificationResult
+    {
+        public bool IsValid { get; set; }
+        public int TotalSignatures { get; set; }
+        public List<SignatureInfo> Signatures { get; set; } = new List<SignatureInfo>();
+    }
+
+    /// <summary>
+    /// Information about a single signature in a PDF
+    /// </summary>
+    public class SignatureInfo
+    {
+        public string Name { get; set; } = "";
+        public bool IsValid { get; set; }
+        public string CertificateSubject { get; set; } = "";
+        public string SerialNumber { get; set; } = "";
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Result of signature verification during signing process
+    /// </summary>
+    public class SignatureVerificationResult
+    {
+        public bool IsValid { get; set; }
+        public string SigningCertificateSerialNumber { get; set; } = "";
+        public string PdfCertificateSerialNumber { get; set; } = "";
+        public string CertificateSubject { get; set; } = "";
+        public string Message { get; set; } = "";
     }
 }

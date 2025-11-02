@@ -102,9 +102,43 @@ namespace PdfSignerApp
                         Console.WriteLine($"Verifying PDF: {pdfToVerify}");
                         Console.WriteLine();
 
-                        var isVerified = signer.VerifyPdfSignature(pdfToVerify);
-                        Console.WriteLine();
-                        Console.WriteLine(isVerified ? "✓ PDF signature verification successful" : "✗ PDF signature verification failed");
+                        try
+                        {
+                            var verificationResult = signer.VerifyPdfSignature(pdfToVerify);
+                            
+                            Console.WriteLine($"Found {verificationResult.TotalSignatures} signature(s)");
+                            
+                            for (int i = 0; i < verificationResult.Signatures.Count; i++)
+                            {
+                                var sig = verificationResult.Signatures[i];
+                                Console.WriteLine($"\nVerifying signature {i + 1}: {sig.Name}");
+                                
+                                if (sig.IsValid)
+                                {
+                                    Console.WriteLine($"  ✓ Signature valid");
+                                    Console.WriteLine($"  ✓ Certificate: {sig.CertificateSubject}");
+                                    if (!string.IsNullOrEmpty(sig.SerialNumber))
+                                    {
+                                        Console.WriteLine($"  ✓ SERIALNUMBER: {sig.SerialNumber}");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"  ✓ SERIALNUMBER: Not present in certificate subject");
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"  ✗ {sig.ErrorMessage}");
+                                }
+                            }
+                            
+                            Console.WriteLine();
+                            Console.WriteLine(verificationResult.IsValid ? "✓ PDF signature verification successful" : "✗ PDF signature verification failed");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"✗ Verification failed: {ex.Message}");
+                        }
                         break;
 
                     default:
