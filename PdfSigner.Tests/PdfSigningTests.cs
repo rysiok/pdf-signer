@@ -245,6 +245,56 @@ public class PdfSigningTests : IDisposable
             .WithInnerException<DirectoryNotFoundException>();
     }
 
+    [Fact]
+    public void SignPdf_DoubleSign_ShouldPreserveBothSignatures()
+    {
+        // Arrange
+        var inputPath = Path.Combine(_testDataDir, "test_double_sign.pdf");
+        var firstSignedPath = Path.Combine(_testDataDir, "test_double_sign_first.pdf");
+        var secondSignedPath = Path.Combine(_testDataDir, "test_double_sign_second.pdf");
+        
+        // Create another certificate for second signature
+        var secondCert = TestCertificateGenerator.CreateCertificateWithSerialNumber("SecondSignerCert", "SECOND987654");
+        var secondCertCleanup = TestCertificateGenerator.InstallCertificateToStore(secondCert);
+        
+        try
+        {
+            TestPdfGenerator.CreateSimplePdf(inputPath);
+            
+            // Act - Sign the PDF twice with different certificates
+            _signer.SignPdf(inputPath, firstSignedPath, "SigningTestCert", "First signature", "Location 1");
+            _signer.SignPdf(firstSignedPath, secondSignedPath, "SecondSignerCert", "Second signature", "Location 2");
+
+            // Assert - Both signing operations should succeed
+            File.Exists(firstSignedPath).Should().BeTrue("first signed file should be created");
+            File.Exists(secondSignedPath).Should().BeTrue("second signed file should be created");
+            
+            // Verify both signatures exist using VerifyPdfSignature
+            var result = _signer.VerifyPdfSignature(secondSignedPath);
+            
+            result.Should().NotBeNull();
+            result.TotalSignatures.Should().Be(2, "PDF should contain both signatures");
+            result.Signatures.Should().HaveCount(2);
+            
+            // The second (latest) signature should be valid and cover the whole document
+            var secondSignature = result.Signatures.FirstOrDefault(s => s.CertificateSubject.Contains("SECOND987654"));
+            secondSignature.Should().NotBeNull("second signature should be present");
+            secondSignature!.IsValid.Should().BeTrue("second signature should be valid");
+            
+            // The first signature is preserved but marked invalid because it no longer covers the whole document
+            // (the document was modified by adding the second signature). This is correct behavior.
+            var firstSignature = result.Signatures.FirstOrDefault(s => !s.IsValid);
+            firstSignature.Should().NotBeNull("first signature should be preserved (but marked invalid)");
+            firstSignature!.ErrorMessage.Should().Contain("does not cover the whole document", 
+                "first signature should fail because document was modified after signing");
+        }
+        finally
+        {
+            secondCertCleanup.Dispose();
+            secondCert.Dispose();
+        }
+    }
+
     // Helper method to invoke private GetMatchingFiles method
     private string[] InvokeGetMatchingFiles(string pattern)
     {

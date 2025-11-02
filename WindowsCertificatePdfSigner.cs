@@ -532,70 +532,80 @@ namespace PdfSignerApp
                     throw new InvalidOperationException("No signatures found in the PDF");
                 }
 
-                // Check the first (latest) signature
-                var signatureName = signatureNames[0];
-                var pkcs7 = signatureUtil.ReadSignatureData(signatureName);
-                
-                if (pkcs7 == null)
-                {
-                    throw new InvalidOperationException("Could not read signature data");
-                }
-
-                // Verify signature integrity
-                var signatureCoversWholeDocument = signatureUtil.SignatureCoversWholeDocument(signatureName);
-                if (!signatureCoversWholeDocument)
-                {
-                    throw new InvalidOperationException("Signature does not cover the whole document");
-                }
-
-                // Get the signing certificate from the PDF
-                var signingCerts = pkcs7.GetSignCertificateChain();
-                if (signingCerts == null || signingCerts.Length == 0)
-                {
-                    throw new InvalidOperationException("No signing certificate found in signature");
-                }
-
-                var pdfSigningCert = signingCerts[0];
-                
-                // Extract SERIALNUMBER property from certificate subjects for comparison
+                // Extract SERIALNUMBER from the signing certificate for comparison
                 var signingCertSerialNumber = ExtractSerialNumberFromSubject(signingCertificate.Subject);
-                var pdfCertSubject = pdfSigningCert.GetSubjectDN()?.ToString() ?? "";
-                var pdfCertSerialNumber = ExtractSerialNumberFromSubject(pdfCertSubject);
                 
-                var result = new SignatureVerificationResult
-                {
-                    IsValid = true,
-                    SigningCertificateSerialNumber = signingCertSerialNumber,
-                    PdfCertificateSerialNumber = pdfCertSerialNumber,
-                    CertificateSubject = pdfCertSubject
-                };
-
                 // SERIALNUMBER property is required for verification
                 if (string.IsNullOrEmpty(signingCertSerialNumber))
                 {
                     throw new InvalidOperationException("SERIALNUMBER property not found in signing certificate subject - verification failed");
                 }
-                
-                if (string.IsNullOrEmpty(pdfCertSerialNumber))
-                {
-                    throw new InvalidOperationException("SERIALNUMBER property not found in PDF certificate subject - verification failed");
-                }
-                
-                if (signingCertSerialNumber != pdfCertSerialNumber)
-                {
-                    throw new InvalidOperationException($"SERIALNUMBER mismatch: Signing cert '{signingCertSerialNumber}' vs PDF cert '{pdfCertSerialNumber}'");
-                }
-                
-                result.Message = $"SERIALNUMBER verified: {signingCertSerialNumber}";
 
-                // Verify the signature cryptographically
-                var isValid = pkcs7.VerifySignatureIntegrityAndAuthenticity();
-                if (!isValid)
+                // Check all signatures to find the one matching our certificate
+                List<string> checkedSignatures = new List<string>();
+                foreach (var signatureName in signatureNames)
                 {
-                    throw new InvalidOperationException("Signature integrity verification failed");
-                }
+                    var pkcs7 = signatureUtil.ReadSignatureData(signatureName);
+                    
+                    if (pkcs7 == null)
+                    {
+                        checkedSignatures.Add($"{signatureName}: Could not read signature data");
+                        continue;
+                    }
 
-                return result;
+                    // Get the signing certificate from the PDF
+                    var signingCerts = pkcs7.GetSignCertificateChain();
+                    if (signingCerts == null || signingCerts.Length == 0)
+                    {
+                        checkedSignatures.Add($"{signatureName}: No signing certificate found");
+                        continue;
+                    }
+
+                    var pdfSigningCert = signingCerts[0];
+                    var pdfCertSubject = pdfSigningCert.GetSubjectDN()?.ToString() ?? "";
+                    var pdfCertSerialNumber = ExtractSerialNumberFromSubject(pdfCertSubject);
+                    
+                    // Check if this signature matches our certificate
+                    if (string.IsNullOrEmpty(pdfCertSerialNumber))
+                    {
+                        checkedSignatures.Add($"{signatureName}: No SERIALNUMBER in certificate");
+                        continue;
+                    }
+                    
+                    if (signingCertSerialNumber != pdfCertSerialNumber)
+                    {
+                        checkedSignatures.Add($"{signatureName}: SERIALNUMBER mismatch (expected: {signingCertSerialNumber}, found: {pdfCertSerialNumber})");
+                        continue;
+                    }
+                    
+                    // Found matching signature! Verify it
+                    var signatureCoversWholeDocument = signatureUtil.SignatureCoversWholeDocument(signatureName);
+                    if (!signatureCoversWholeDocument)
+                    {
+                        throw new InvalidOperationException($"Signature '{signatureName}' does not cover the whole document");
+                    }
+
+                    // Verify the signature cryptographically
+                    var isValid = pkcs7.VerifySignatureIntegrityAndAuthenticity();
+                    if (!isValid)
+                    {
+                        throw new InvalidOperationException($"Signature '{signatureName}' integrity verification failed");
+                    }
+
+                    // Success!
+                    return new SignatureVerificationResult
+                    {
+                        IsValid = true,
+                        SigningCertificateSerialNumber = signingCertSerialNumber,
+                        PdfCertificateSerialNumber = pdfCertSerialNumber,
+                        CertificateSubject = pdfCertSubject,
+                        Message = $"SERIALNUMBER verified: {signingCertSerialNumber}"
+                    };
+                }
+                
+                // No matching signature found
+                var checkedInfo = string.Join("; ", checkedSignatures);
+                throw new InvalidOperationException($"No signature found matching certificate with SERIALNUMBER '{signingCertSerialNumber}'. Checked signatures: {checkedInfo}");
             }
             catch (Exception ex) when (!(ex is InvalidOperationException))
             {
@@ -613,7 +623,11 @@ namespace PdfSignerApp
             using var reader = new PdfReader(inputPath);
             using var writer = new PdfWriter(outputPath);
             
-            var signer = new iText.Signatures.PdfSigner(reader, writer, new StampingProperties());
+            // Use append mode to preserve existing signatures
+            var stampingProperties = new StampingProperties();
+            stampingProperties.UseAppendMode();
+            
+            var signer = new iText.Signatures.PdfSigner(reader, writer, stampingProperties);
 
             // Create certificate using the raw certificate data
             var bcCert = new X509CertificateBC(new Org.BouncyCastle.X509.X509CertificateParser().ReadCertificate(certificate.RawData));
