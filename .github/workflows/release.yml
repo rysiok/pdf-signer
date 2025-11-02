@@ -46,7 +46,7 @@ jobs:
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
         
         # Get executable info
-        $exePath = "bin/Release/net8.0/win-x64/publish/PdfSigner.exe"
+        $exePath = "bin/Release/net9.0/win-x64/publish/PdfSigner.exe"
         $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
         echo "SIZE=$size MB" >> $env:GITHUB_OUTPUT
         
@@ -57,7 +57,7 @@ jobs:
       shell: pwsh
       run: |
         $archiveName = "PdfSigner-${{ steps.version.outputs.VERSION }}-win-x64.zip"
-        Compress-Archive -Path "bin/Release/net8.0/win-x64/publish/PdfSigner.exe" -DestinationPath $archiveName
+        Compress-Archive -Path "bin/Release/net9.0/win-x64/publish/PdfSigner.exe" -DestinationPath $archiveName
         echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_OUTPUT
         
     - name: Generate release notes
@@ -103,7 +103,7 @@ jobs:
         body_path: release-notes.md
         files: |
           PdfSigner-${{ steps.version.outputs.VERSION }}-win-x64.zip
-          bin/Release/net8.0/win-x64/publish/PdfSigner.exe
+          bin/Release/net9.0/win-x64/publish/PdfSigner.exe
         draft: false
         prerelease: false
       env:
