@@ -32,6 +32,7 @@ if "%~1"=="" (
     echo   sign input.pdf output.pdf "cert_identifier" - Sign a PDF file
     echo   sign input.pdf output.pdf "cert_identifier" "reason" "location" - Sign with custom reason and location
     echo   batch "pattern" "output_dir" "cert_identifier" - Sign multiple PDF files
+    echo   verify signed.pdf                           - Verify signatures in a PDF file
     echo.
     echo Examples:
     echo   sign.bat list
@@ -40,6 +41,7 @@ if "%~1"=="" (
     echo   sign.bat sign document.pdf signed_doc.pdf "A6B149D4A2C7D5F3C5E777640B6534652A674040"
     echo   sign.bat batch "*.pdf" "signed" "localhost"
     echo   sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch signed" "Office" "-approved"
+    echo   sign.bat verify signed_document.pdf
     echo.
     echo Certificate identifier options:
     echo   - Subject names: "localhost", "John Doe", "CN=John Doe, O=Company"

@@ -83,6 +83,30 @@ namespace PdfSignerApp
                         signer.SignBatch(inputPattern, outputDirectory, batchCertificateSubject, batchReason, batchLocation, outputSuffix);
                         break;
 
+                    case "verify":
+                        if (args.Length < 2)
+                        {
+                            Console.WriteLine("Error: Missing required parameter for verification.");
+                            ShowVerifyUsage();
+                            return;
+                        }
+
+                        var pdfToVerify = args[1];
+
+                        if (!File.Exists(pdfToVerify))
+                        {
+                            Console.WriteLine($"Error: PDF file '{pdfToVerify}' not found.");
+                            return;
+                        }
+
+                        Console.WriteLine($"Verifying PDF: {pdfToVerify}");
+                        Console.WriteLine();
+
+                        var isVerified = signer.VerifyPdfSignature(pdfToVerify);
+                        Console.WriteLine();
+                        Console.WriteLine(isVerified ? "✓ PDF signature verification successful" : "✗ PDF signature verification failed");
+                        break;
+
                     default:
                         Console.WriteLine($"Unknown command: {args[0]}");
                         ShowUsage();
@@ -108,6 +132,9 @@ namespace PdfSignerApp
             Console.WriteLine("  PdfSigner.exe batch <input_pattern> <output_directory> <certificate_identifier> [reason] [location] [suffix]");
             Console.WriteLine("    - Signs multiple PDF files matching a pattern");
             Console.WriteLine();
+            Console.WriteLine("  PdfSigner.exe verify <signed.pdf>");
+            Console.WriteLine("    - Verifies the signature of a signed PDF file");
+            Console.WriteLine();
             ShowSignUsage();
             Console.WriteLine();
             ShowBatchUsage();
@@ -119,6 +146,7 @@ namespace PdfSignerApp
             Console.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"A6B149D4A2C7D5F3C5E777640B6534652A674040\"");
             Console.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"localhost\"");
             Console.WriteLine("  PdfSigner.exe batch \"documents/*.pdf\" \"output\" \"John Doe\" \"Batch signed\" \"Office\" \"-approved\"");
+            Console.WriteLine("  PdfSigner.exe verify signed_document.pdf");
         }
 
         static void ShowSignUsage()
@@ -147,6 +175,12 @@ namespace PdfSignerApp
             Console.WriteLine("  [reason]                 - Optional: Reason for signing (default: 'Document digitally signed')");
             Console.WriteLine("  [location]               - Optional: Location of signing (default: computer name)");
             Console.WriteLine("  [suffix]                 - Optional: Suffix for output filenames (default: '-sig')");
+        }
+
+        static void ShowVerifyUsage()
+        {
+            Console.WriteLine("Verify parameters:");
+            Console.WriteLine("  <signed.pdf>             - Path to the signed PDF file to verify");
         }
     }
 }

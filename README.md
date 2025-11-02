@@ -6,10 +6,12 @@ This C# console application allows you to digitally sign PDF files using certifi
 
 - **Certificate Discovery**: Automatically finds certificates from Windows Certificate Store (both Current User and Local Machine stores)
 - **PDF Signing**: Signs PDF files with digital signatures using X.509 certificates
+- **Signature Verification**: Automatically verifies signatures after signing and validates serial numbers
 - **Batch Signing**: Sign multiple PDF files at once using pattern matching
 - **Certificate Listing**: Lists all available certificates with their details
 - **Command Line Interface**: Easy-to-use CLI for batch operations
 - **Batch Processing**: Sign multiple PDF files with a single command
+- **Standalone Verification**: Verify signatures in existing signed PDF files
 - **Error Handling**: Comprehensive error handling and validation
 
 ## Prerequisites
@@ -93,6 +95,34 @@ dotnet run sign document.pdf signed_document.pdf "A6 B1 49 D4 A2 C7 D5 F3 C5 E7 
 # Batch sign multiple files
 dotnet run batch "*.pdf" "signed_output" "localhost"
 dotnet run batch "documents/*.pdf" "output" "John Doe" "Batch signed" "Office" "-approved"
+
+# Verify a signed PDF
+dotnet run verify signed_document.pdf
+```
+
+### Verify PDF Signatures
+
+To verify the signatures in a signed PDF file:
+
+```bash
+# Verify all signatures in a PDF
+dotnet run verify signed_document.pdf
+```
+
+This will:
+- Check all signatures present in the PDF
+- Verify signature integrity and authenticity
+- Display certificate information including serial numbers
+- Report whether signatures cover the whole document
+- Show overall verification status
+
+### Verification Features
+
+- **Automatic Verification**: All signed PDFs are automatically verified after signing
+- **Serial Number Validation**: Compares the signing certificate serial number with the PDF signature
+- **Integrity Check**: Validates that signatures cover the complete document
+- **Multiple Signatures**: Handles PDFs with multiple signatures
+- **Detailed Reporting**: Shows certificate details and verification status for each signature
 ```
 
 ## Certificate Requirements
@@ -110,7 +140,8 @@ The application will look for certificates that:
 2. **Certificate Validation**: It finds certificates with private keys and prefers valid (non-expired) ones
 3. **PDF Processing**: Uses iText7 to read the input PDF and prepare for signing
 4. **Digital Signing**: Applies the digital signature using BouncyCastle cryptographic operations
-5. **Output Generation**: Saves the signed PDF to the specified output path
+5. **Signature Verification**: Automatically verifies the signature and validates serial number matching
+6. **Output Generation**: Saves the signed PDF to the specified output path
 
 ## Security Notes
 
@@ -172,6 +203,9 @@ sign.bat sign contract.pdf signed_contract.pdf "John Doe" "Contract signature" "
 REM Batch sign multiple PDFs
 sign.bat batch "*.pdf" "signed" "localhost"
 sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch processed" "Office" "-approved"
+
+REM Verify a signed PDF
+sign.bat verify signed_document.pdf
 ```
 
 The batch script includes:
