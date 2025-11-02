@@ -38,7 +38,7 @@ namespace PdfSignerApp
                         var outputFile = args[2];
                         var certificateSubject = args[3];
                         var reason = args.Length > 4 ? args[4] : "Document digitally signed";
-                        var location = args.Length > 5 ? args[5] : Environment.MachineName;
+                        var location = args.Length > 5 ? args[5] : "PdfSigner by rysiok";
 
                         if (!File.Exists(inputFile))
                         {
@@ -68,7 +68,7 @@ namespace PdfSignerApp
                         var outputDirectory = args[2];
                         var batchCertificateSubject = args[3];
                         var batchReason = args.Length > 4 ? args[4] : "Document digitally signed";
-                        var batchLocation = args.Length > 5 ? args[5] : Environment.MachineName;
+                        var batchLocation = args.Length > 5 ? args[5] : "PdfSigner by rysiok";
                         var outputSuffix = args.Length > 6 ? args[6] : "-sig";
 
                         Console.WriteLine($"Batch signing PDFs:");
