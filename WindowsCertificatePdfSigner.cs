@@ -26,6 +26,11 @@ namespace PdfSignerApp
         public void SignPdf(string inputPath, string outputPath, string certificateSubject, 
                            string reason = "Document signed", string location = "")
         {
+            if (string.IsNullOrWhiteSpace(certificateSubject))
+            {
+                throw new ArgumentException("Certificate identifier cannot be null or empty.", nameof(certificateSubject));
+            }
+            
             // Find certificate in Windows certificate store
             var certificate = FindCertificate(certificateSubject);
             if (certificate == null)
@@ -39,7 +44,7 @@ namespace PdfSignerApp
             // Sign the PDF
             SignPdfWithCertificate(inputPath, outputPath, certificate, reason, location);
             
-            // Verify the signature
+            // Verify the signature (skip if certificate doesn't have SERIALNUMBER)
             Console.WriteLine("Verifying signature...");
             try
             {
@@ -47,6 +52,12 @@ namespace PdfSignerApp
                 Console.WriteLine($"  ✓ SERIALNUMBER verified: {verificationResult.SigningCertificateSerialNumber}");
                 Console.WriteLine("  ✓ Signature verified and authenticated");
                 Console.WriteLine("✓ PDF signed and verified successfully");
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("SERIALNUMBER property not found"))
+            {
+                // Certificate doesn't have SERIALNUMBER in subject - signing succeeded but verification limited
+                Console.WriteLine("  ⚠ Warning: Certificate does not have SERIALNUMBER property - verification skipped");
+                Console.WriteLine("✓ PDF signed successfully (verification skipped)");
             }
             catch (Exception ex)
             {
@@ -233,11 +244,15 @@ namespace PdfSignerApp
         /// <returns>True if it looks like a thumbprint, false otherwise</returns>
         private bool IsThumbprint(string value)
         {
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+                
             // Remove any spaces or colons that might be in the thumbprint
             var cleanValue = value.Replace(" ", "").Replace(":", "");
             
-            // Check if it's a hex string of reasonable length (typically 40 chars for SHA-1, 64 for SHA-256)
-            return cleanValue.Length >= 32 && cleanValue.Length <= 64 && 
+            // Check if it's a hex string of reasonable length (32-40 chars for SHA-1, 64+ for SHA-256)
+            // Allow slightly longer strings as some systems may have extended formats
+            return cleanValue.Length >= 32 && cleanValue.Length <= 128 && 
                    System.Text.RegularExpressions.Regex.IsMatch(cleanValue, @"^[0-9A-Fa-f]+$");
         }
 
@@ -471,14 +486,24 @@ namespace PdfSignerApp
             if (string.IsNullOrEmpty(subjectDN))
                 return "";
 
-            // Look for SERIALNUMBER= in the subject DN
-            var parts = subjectDN.Split(',', ';');
+            // Try different separators and formats
+            // Windows certificate store might use different formats: comma, semicolon, or newline separated
+            var separators = new[] { ',', ';', '\n', '\r' };
+            var parts = subjectDN.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            
             foreach (var part in parts)
             {
                 var trimmedPart = part.Trim();
-                if (trimmedPart.StartsWith("SERIALNUMBER=", StringComparison.OrdinalIgnoreCase))
+                // Check for various formats: SERIALNUMBER=, OID.2.5.4.5=, or SN=
+                if (trimmedPart.StartsWith("SERIALNUMBER=", StringComparison.OrdinalIgnoreCase) ||
+                    trimmedPart.StartsWith("OID.2.5.4.5=", StringComparison.OrdinalIgnoreCase) ||
+                    trimmedPart.StartsWith("SN=", StringComparison.OrdinalIgnoreCase))
                 {
-                    return trimmedPart.Substring("SERIALNUMBER=".Length);
+                    var equalsIndex = trimmedPart.IndexOf('=');
+                    if (equalsIndex > 0 && equalsIndex < trimmedPart.Length - 1)
+                    {
+                        return trimmedPart.Substring(equalsIndex + 1).Trim();
+                    }
                 }
             }
             

@@ -1,0 +1,28 @@
+Summary
+  Generated on: 2025-11-02 - 23:04:04
+  Coverage date: 2025-11-02 - 22:32:01 - 2025-11-02 - 22:38:01
+  Parser: MultiReport (2x Cobertura)
+  Assemblies: 1
+  Classes: 6
+  Files: 2
+  Line coverage: 60.9%
+  Covered lines: 333
+  Uncovered lines: 213
+  Coverable lines: 546
+  Total lines: 946
+  Branch coverage: 60.5% (86 of 142)
+  Covered branches: 86
+  Total branches: 142
+  Method coverage: 86.1% (31 of 36)
+  Full method coverage: 61.1% (22 of 36)
+  Covered methods: 31
+  Fully covered methods: 22
+  Total methods: 36
+
+PdfSigner                                    60.9%
+  PdfSignerApp.DotNetSignature               82.8%
+  PdfSignerApp.PdfVerificationResult          100%
+  PdfSignerApp.Program                          0%
+  PdfSignerApp.SignatureInfo                  100%
+  PdfSignerApp.SignatureVerificationResult    100%
+  PdfSignerApp.WindowsCertificatePdfSigner   86.8%
