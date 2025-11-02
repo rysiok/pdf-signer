@@ -27,10 +27,10 @@ jobs:
         dotnet-version: '8.0.x'
         
     - name: Restore dependencies
-      run: dotnet restore PdfSigner.csproj
+      run: dotnet restore sign.sln
       
     - name: Run tests
-      run: dotnet test PdfSigner.Tests/PdfSigner.Tests.csproj --verbosity normal
+      run: dotnet test sign.sln --verbosity normal
       
     - name: Publish Release
       run: dotnet publish PdfSigner.csproj -c Release
