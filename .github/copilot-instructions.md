@@ -1,12 +1,12 @@
 # PDF Signer with Windows Certificate Store - AI Coding Guide
 
 ## Project Overview
-Console application for digitally signing PDFs using Windows Certificate Store certificates. Core tech: .NET 8.0, iText7 8.0.2, BouncyCastle for cryptography. Single executable with comprehensive test suite (XUnit, FluentAssertions).
+Console application for digitally signing PDFs using Windows Certificate Store certificates. Core tech: .NET 8.0, iText7 8.0.2, BouncyCastle for cryptography. Single-file standalone executable (~40MB) with custom icon, comprehensive test suite (XUnit, FluentAssertions), and professional branding.
 
 ## Architecture & Critical Patterns
 
 ### Three-Component Design
-1. **Program.cs**: CLI entry point - handles argument parsing, command routing (`list`, `sign`, `batch`, `verify`)
+1. **Program.cs**: CLI entry point - handles argument parsing, command routing (`list`, `sign`, `batch`, `verify`). Default location: "PdfSigner by rysiok"
 2. **WindowsCertificatePdfSigner.cs**: Core library (740 lines) - all PDF signing/verification logic
 3. **Test Suite** (`PdfSigner.Tests/`): 82 tests organized by concern (signing, verification, error scenarios)
 
@@ -27,6 +27,21 @@ Verification relies on the SERIALNUMBER property in certificate subjects (e.g., 
 
 ## Development Workflows
 
+### Building Release Executable
+```powershell
+.\build.ps1 release              # Single-file, self-contained, compressed (~40MB)
+.\build.ps1 debug                # Debug version with symbols
+.\build.ps1 both                 # Both release and debug
+.\build.ps1 clean                # Clean all build outputs
+```
+Output: `bin\Release\net8.0\win-x64\publish\PdfSigner.exe`
+
+**Build Configuration** (PdfSigner.csproj):
+- Release: `PublishSingleFile=true`, `EnableCompressionInSingleFile=true`
+- Icon: `icon.ico` (blue document with signature checkmark)
+- Version: 1.0.0.0, Product: "PDF Signer with Windows Certificate Store"
+- No trimming (iText7 uses reflection extensively)
+
 ### Running Tests
 ```powershell
 dotnet test --verbosity minimal --nologo                    # Quick test run
@@ -38,15 +53,22 @@ Current status: 78 passing, 4 skipped (investigation needed for X509Certificate2
 ### Test Certificate Generation
 Tests use `TestCertificateGenerator.CreateCertificateWithSerialNumber()` to create BouncyCastle self-signed certs with custom SERIALNUMBER properties. These are installed to Windows cert store during test setup and cleaned up via IDisposable pattern.
 
-### Building & Running
+### Runtime Commands
 ```powershell
-dotnet build                                                 # Builds main + test projects
 dotnet run list                                              # List available certificates
 dotnet run sign input.pdf output.pdf "cert_subject"         # Sign single file
 dotnet run batch "*.pdf" "output_dir" "cert_subject"        # Batch signing
+
+# Or use built executable
+.\bin\Release\net8.0\win-x64\publish\PdfSigner.exe list
 ```
 
 ## Project-Specific Conventions
+
+### Default Values
+- **Location**: "PdfSigner by rysiok" (not computer name)
+- **Reason**: "Document digitally signed"
+- **Output suffix**: "-sig" (for batch operations)
 
 ### Exception Handling Strategy
 - Public methods throw `InvalidOperationException` with descriptive messages for library consumers
@@ -62,7 +84,7 @@ Three search strategies in order:
 Searches CurrentUser store first, then LocalMachine. Returns first valid cert with private key.
 
 ### Test Organization Pattern
-- **PdfSigningTests.cs**: Single file operations, batch operations, certificate validation
+- **PdfSigningTests.cs**: Single file operations, batch operations, certificate validation, double-signing
 - **PdfVerificationTests.cs**: Signature verification scenarios (4 tests currently skipped)
 - **ErrorScenarioTests.cs**: Exception handling, invalid inputs
 - **Utilities/**: `TestCertificateGenerator` (BouncyCastle cert creation), `TestPdfGenerator` (iText7 test PDFs)
@@ -94,6 +116,7 @@ Uses `X509Store(StoreName.My, StoreLocation)` for certificate discovery. Require
 2. **SERIALNUMBER extraction complexity**: X509Certificate2.Subject doesn't preserve DN order reliably - always use `ExtractSerialNumberFromSubject()`
 3. **Verification after append**: The first signature won't "cover whole document" after second signature added - this is CORRECT behavior, not a bug
 4. **Test certificate lifecycle**: Always install certs to store AND track IDisposable cleanup to avoid cert store pollution between tests
+5. **Build configuration**: Always specify `PdfSigner.csproj` explicitly when building in directories with multiple projects
 
 ## Test Coverage Strategy
 Target: >85% line coverage for WindowsCertificatePdfSigner.cs (currently 86.8%). Focus on:
@@ -102,14 +125,26 @@ Target: >85% line coverage for WindowsCertificatePdfSigner.cs (currently 86.8%).
 - Error conditions (missing files, invalid PDFs, corrupt signatures)
 - Batch operation scenarios (empty patterns, mixed success/failure)
 
+## Application Identity & Branding
+- **Icon**: `icon.ico` - Blue document with signature checkmark (create-icon.ps1 to regenerate)
+- **Version Info**: Product name, version 1.0.0, copyright embedded in executable
+- **Default Location**: "PdfSigner by rysiok" appears in PDF signature metadata
+- **Executable Size**: ~40MB compressed (Release), includes .NET runtime + all dependencies
+
 ## Quick Reference Commands
 ```powershell
 # Development cycle
-dotnet test && dotnet run sign test.pdf signed.pdf "localhost"
+.\build.ps1 release && .\bin\Release\net8.0\win-x64\publish\PdfSigner.exe sign test.pdf signed.pdf "thumbprint"
+
+# Test with coverage
+dotnet test --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
 # Check specific test output
 dotnet test --logger "console;verbosity=detailed" --filter "SignPdf_DoubleSign"
 
-# Generate coverage report (requires reportgenerator tool)
-dotnet test --collect:"XPlat Code Coverage" --results-directory ./TestResults
+# Recreate application icon
+.\create-icon.ps1
+
+# View executable properties
+explorer.exe /select,"bin\Release\net8.0\win-x64\publish\PdfSigner.exe"
 ```
