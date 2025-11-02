@@ -8,6 +8,20 @@
     
     <!-- Default runtime identifier for standalone builds -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    
+    <!-- Application Icon -->
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    
+    <!-- Assembly Information -->
+    <AssemblyName>PdfSigner</AssemblyName>
+    <Product>PDF Signer with Windows Certificate Store</Product>
+    <Description>Digitally sign PDF files using certificates from Windows Certificate Store</Description>
+    <Company>PDF Signer</Company>
+    <Copyright>Copyright © 2025</Copyright>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
   <!-- Release configuration: Single-file, self-contained, trimmed -->

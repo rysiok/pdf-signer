@@ -9,7 +9,7 @@ param(
 
 function Build-Release {
     Write-Host "Building Release version..." -ForegroundColor Cyan
-    dotnet publish -c Release
+    dotnet publish PdfSigner.csproj -c Release
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
         Write-Host "========================================" -ForegroundColor Green
@@ -23,7 +23,7 @@ function Build-Release {
 
 function Build-Debug {
     Write-Host "Building Debug version..." -ForegroundColor Cyan
-    dotnet publish -c Debug
+    dotnet publish PdfSigner.csproj -c Debug
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
         Write-Host "========================================" -ForegroundColor Green

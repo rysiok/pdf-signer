@@ -30,7 +30,7 @@ goto end
 
 :release
 echo Building Release version...
-dotnet publish -c Release
+dotnet publish PdfSigner.csproj -c Release
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo ========================================
@@ -42,7 +42,7 @@ goto end
 
 :debug
 echo Building Debug version...
-dotnet publish -c Debug
+dotnet publish PdfSigner.csproj -c Debug
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo ========================================
