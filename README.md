@@ -74,7 +74,8 @@ dotnet run batch <input_pattern> <output_directory> <certificate_subject> [reaso
   - **Partial subject name**: Part of the subject (e.g., "John Doe" or "localhost")
   - **Thumbprint**: Certificate thumbprint (e.g., "A6B149D4A2C7D5F3C5E777640B6534652A674040")
 - `[reason]` (optional): Reason for signing (default: "Document digitally signed")
-- `[location]` (optional): Location of signing (default: computer name)
+- `[location]` (optional): Location of signing (default: "PdfSigner by rysiok")
+- `[suffix]` (optional, batch only): Suffix for output filenames (default: "-sig")
 
 **Examples:**
 
@@ -94,7 +95,7 @@ dotnet run sign contract.pdf signed_contract.pdf "John Doe" "Contract approval" 
 # Thumbprint with spaces (also supported)
 dotnet run sign document.pdf signed_document.pdf "A6 B1 49 D4 A2 C7 D5 F3 C5 E7 77 64 0B 65 34 65 2A 67 40 40"
 
-# Batch sign multiple files
+# Batch sign multiple files (uses default location "PdfSigner by rysiok")
 dotnet run batch "*.pdf" "signed_output" "localhost"
 dotnet run batch "documents/*.pdf" "output" "John Doe" "Batch signed" "Office" "-approved"
 
@@ -223,6 +224,39 @@ The batch script includes:
 
 ## Building for Release
 
+The project includes convenient build scripts for creating standalone executables:
+
+### Using Build Scripts
+
+**PowerShell:**
+```powershell
+.\build.ps1 release    # Build optimized release (~40MB, compressed)
+.\build.ps1 debug      # Build debug version with symbols
+.\build.ps1 both       # Build both release and debug
+.\build.ps1 clean      # Clean all build outputs
+```
+
+**Batch File:**
+```cmd
+build.bat release      # Build optimized release
+build.bat debug        # Build debug version
+build.bat both         # Build both versions
+build.bat clean        # Clean all outputs
+```
+
+### Output Locations
+- **Release**: `bin\Release\net8.0\win-x64\publish\PdfSigner.exe` (~40MB)
+- **Debug**: `bin\Debug\net8.0\win-x64\publish\PdfSigner.exe`
+
+The release executable is:
+- Self-contained (includes .NET 8.0 runtime)
+- Single-file (no external dependencies)
+- Compressed for smaller size
+- Includes custom application icon
+- Embeds version information (1.0.0)
+
+### Manual Build Commands
+
 To build a release version:
 
 ```bash
@@ -232,22 +266,37 @@ dotnet build -c Release
 To publish as a single executable:
 
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+dotnet publish PdfSigner.csproj -c Release
 ```
+
+The executable can be copied to any Windows x64 machine and run without installing .NET.
 
 ## Project Structure
 
 ```
 PdfSigner/
-├── PdfSigner.csproj          # Project file with dependencies
+├── PdfSigner.csproj          # Project file with dependencies and build config
 ├── Program.cs                # Main console application entry point
 ├── WindowsCertificatePdfSigner.cs  # Core signing functionality
+├── icon.ico                 # Application icon (blue document with signature)
+├── build.ps1                # PowerShell build script
+├── build.bat                # Windows CMD build script
+├── create-icon.ps1          # Icon generation script
+├── sign.bat                 # Windows CMD convenience script for signing
 ├── sample.pdf               # Sample PDF for testing
-├── sign.bat                 # Windows CMD batch script for easy usage
 ├── README.md               # This documentation
-└── .vscode/                # VS Code configuration
-    ├── launch.json         # Debug configurations
-    └── tasks.json          # Build tasks
+├── .github/
+│   └── copilot-instructions.md  # AI coding agent guidelines
+├── .vscode/                # VS Code configuration
+│   ├── launch.json         # Debug configurations
+│   └── tasks.json          # Build tasks
+└── PdfSigner.Tests/        # Test project
+    ├── PdfSigningTests.cs      # Signing operation tests
+    ├── PdfVerificationTests.cs # Verification tests
+    ├── ErrorScenarioTests.cs   # Error handling tests
+    └── Utilities/             # Test helpers
+        ├── TestCertificateGenerator.cs
+        └── TestPdfGenerator.cs
 ```
 
 ## Architecture
