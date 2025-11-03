@@ -53,6 +53,16 @@ Current status: 78 passing, 4 skipped (investigation needed for X509Certificate2
 ### Test Certificate Generation
 Tests use `TestCertificateGenerator.CreateCertificateWithSerialNumber()` to create BouncyCastle self-signed certs with custom SERIALNUMBER properties. These are installed to Windows cert store during test setup and cleaned up via IDisposable pattern.
 
+**Certificate Cleanup**: Test certificates should be automatically removed by the IDisposable pattern, but if test runs are interrupted or fail, certificates may accumulate in the Windows Certificate Store. To clean up orphaned test certificates:
+```powershell
+# Remove all test certificates (ERR123, BATCH123, PUB123, etc.)
+Get-ChildItem Cert:\CurrentUser\My | Where-Object { 
+    $_.Subject -match "SERIALNUMBER=(ERR123|BATCH123|PUB123|SIGN123456|SECOND987654|SECOND789|DIFFERENT123)" -or 
+    $_.Subject -match "CN=(SigningTestCert|SecondSignerCert|ErrorTestCert|BatchTestCert|PublicOnlyCert|AnotherCert|SecondCert)(?:,|$)" 
+} | Remove-Item -Force
+```
+This command identifies test certificates by their SERIALNUMBER or CN patterns and removes them from the CurrentUser\My certificate store.
+
 ### Runtime Commands
 ```powershell
 dotnet run list                                              # List available certificates
