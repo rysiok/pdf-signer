@@ -1,7 +1,7 @@
 # PDF Signer with Windows Certificate Store - AI Coding Guide
 
 ## Project Overview
-Console application for digitally signing PDFs using Windows Certificate Store certificates. Core tech: .NET 8.0, iText7 8.0.2, BouncyCastle for cryptography. Single-file standalone executable (~40MB) with custom icon, comprehensive test suite (XUnit, FluentAssertions), and professional branding.
+Console application for digitally signing PDFs using Windows Certificate Store certificates. Core tech: .NET 9.0, iText 9.3.0, BouncyCastle for cryptography. Single-file standalone executable (~40MB) with custom icon, comprehensive test suite (XUnit, FluentAssertions), and professional branding.
 
 ## Architecture & Critical Patterns
 
@@ -34,13 +34,13 @@ Verification relies on the SERIALNUMBER property in certificate subjects (e.g., 
 .\build.ps1 both                 # Both release and debug
 .\build.ps1 clean                # Clean all build outputs
 ```
-Output: `bin\Release\net8.0\win-x64\publish\PdfSigner.exe`
+Output: `bin\Release\net9.0\win-x64\publish\PdfSigner.exe`
 
 **Build Configuration** (PdfSigner.csproj):
 - Release: `PublishSingleFile=true`, `EnableCompressionInSingleFile=true`
 - Icon: `icon.ico` (blue document with signature checkmark)
 - Version: 1.0.0.0, Product: "PDF Signer with Windows Certificate Store"
-- No trimming (iText7 uses reflection extensively)
+- No trimming (iText 9.3.0 uses reflection extensively)
 
 ### Running Tests
 ```powershell
