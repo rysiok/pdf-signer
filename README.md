@@ -10,6 +10,7 @@ This C# console application allows you to digitally sign PDF files using certifi
 - **Batch Signing**: Sign multiple PDF files at once using pattern matching
 - **Certificate Listing**: Lists all available certificates with their details
 - **Command Line Interface**: Easy-to-use CLI for batch operations
+- **Output Redirection**: Optional file output for automation and logging
 - **Batch Processing**: Sign multiple PDF files with a single command
 - **Standalone Verification**: Verify signatures in existing signed PDF files
 - **Exception-Based Error Handling**: Uses exceptions for better library integration and error reporting
@@ -34,6 +35,30 @@ This C# console application allows you to digitally sign PDF files using certifi
 
 ## Usage
 
+### Global Options
+
+All commands support an optional output file parameter:
+
+```bash
+--output <file>    # Write output to file instead of console
+-o <file>          # Short form
+```
+
+**Examples:**
+```bash
+# Save certificate list to file
+dotnet run list --output certificates.txt
+
+# Save signing log
+dotnet run sign document.pdf signed.pdf "John Doe" -o sign_log.txt
+
+# Save batch operation results
+dotnet run batch "*.pdf" "output" "localhost" --output batch_results.txt
+
+# Save verification results
+dotnet run verify signed.pdf -o verification.txt
+```
+
 ### List Available Certificates
 
 To see all certificates available in your Windows Certificate Store:
@@ -55,7 +80,7 @@ This will display certificates from both Current User and Local Machine personal
 To sign a PDF file:
 
 ```bash
-dotnet run sign <input.pdf> <output.pdf> <certificate_subject> [reason] [location]
+dotnet run sign <input.pdf> <output.pdf> <certificate_subject> [reason] [location] [--output <file>]
 ```
 
 ### Batch Sign Multiple PDF Files
@@ -63,7 +88,7 @@ dotnet run sign <input.pdf> <output.pdf> <certificate_subject> [reason] [locatio
 To sign multiple PDF files at once:
 
 ```bash
-dotnet run batch <input_pattern> <output_directory> <certificate_subject> [reason] [location] [suffix]
+dotnet run batch <input_pattern> <output_directory> <certificate_subject> [reason] [location] [suffix] [--output <file>]
 ```
 
 **Parameters:**
@@ -199,21 +224,27 @@ For easier usage, you can use the provided batch script:
 REM List certificates
 sign.bat list
 
+REM List certificates to file
+sign.bat list -o certificates.txt
+
 REM Sign a PDF using subject name
 sign.bat sign document.pdf signed_document.pdf "localhost"
 
-REM Sign using thumbprint
-sign.bat sign document.pdf signed_document.pdf "A6B149D4A2C7D5F3C5E777640B6534652A674040"
+REM Sign using thumbprint with output log
+sign.bat sign document.pdf signed_document.pdf "A6B149D4A2C7D5F3C5E777640B6534652A674040" -o sign_log.txt
 
 REM Sign with custom reason and location
 sign.bat sign contract.pdf signed_contract.pdf "John Doe" "Contract signature" "New York"
 
-REM Batch sign multiple PDFs
-sign.bat batch "*.pdf" "signed" "localhost"
-sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch processed" "Office" "-approved"
+REM Batch sign multiple PDFs with results log
+sign.bat batch "*.pdf" "signed" "localhost" --output batch_results.txt
+sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch processed" "Office" "-approved" -o batch_log.txt
 
 REM Verify a signed PDF
 sign.bat verify signed_document.pdf
+
+REM Verify with results log
+sign.bat verify signed_document.pdf --output verification.txt
 ```
 
 The batch script includes:
@@ -277,6 +308,7 @@ The executable can be copied to any Windows x64 machine and run without installi
 PdfSigner/
 ├── PdfSigner.csproj          # Project file with dependencies and build config
 ├── Program.cs                # Main console application entry point
+├── OutputWriter.cs           # Output abstraction for console/file redirection
 ├── WindowsCertificatePdfSigner.cs  # Core signing functionality
 ├── icon.ico                 # Application icon (blue document with signature)
 ├── build.ps1                # PowerShell build script
@@ -291,6 +323,7 @@ PdfSigner/
 │   ├── launch.json         # Debug configurations
 │   └── tasks.json          # Build tasks
 └── PdfSigner.Tests/        # Test project
+    ├── TestAssemblyFixture.cs  # Automatic certificate cleanup
     ├── PdfSigningTests.cs      # Signing operation tests
     ├── PdfVerificationTests.cs # Verification tests
     ├── ErrorScenarioTests.cs   # Error handling tests
@@ -301,12 +334,13 @@ PdfSigner/
 
 ## Architecture
 
-The application consists of two main classes:
+The application consists of main classes:
 
 1. **WindowsCertificatePdfSigner**: Handles certificate discovery and PDF signing operations
 2. **DotNetSignature**: Custom implementation of iText's IExternalSignature interface using .NET crypto classes
+3. **OutputWriter**: Provides abstraction for output destinations (console or file) with automatic resource management
 
-The design allows for easy extension to support additional certificate stores or signature algorithms.
+The design allows for easy extension to support additional certificate stores, signature algorithms, or output destinations.
 
 ## License
 
