@@ -8,8 +8,9 @@ namespace PdfSignerApp
     {
         static void Main(string[] args)
         {
-            // Parse output file option
+            // Parse output file and console options
             string? outputFile = null;
+            bool alsoWriteToConsole = false;
             var filteredArgs = args.ToList();
             
             for (int i = 0; i < filteredArgs.Count; i++)
@@ -19,13 +20,19 @@ namespace PdfSignerApp
                     outputFile = filteredArgs[i + 1];
                     filteredArgs.RemoveAt(i); // Remove --output
                     filteredArgs.RemoveAt(i); // Remove the file path
-                    break;
+                    i--; // Adjust index after removal
+                }
+                else if (filteredArgs[i] == "--console" || filteredArgs[i] == "-c")
+                {
+                    alsoWriteToConsole = true;
+                    filteredArgs.RemoveAt(i);
+                    i--; // Adjust index after removal
                 }
             }
 
             args = filteredArgs.ToArray();
 
-            using var output = new OutputWriter(outputFile);
+            using var output = new OutputWriter(outputFile, alsoWriteToConsole);
 
             output.WriteLine("PDF Signer using Windows Certificate Store");
             output.WriteLine("=========================================");
@@ -192,20 +199,21 @@ namespace PdfSignerApp
         static void ShowUsage(OutputWriter output)
         {
             output.WriteLine("Usage:");
-            output.WriteLine("  PdfSigner.exe list [--output <file>]");
+            output.WriteLine("  PdfSigner.exe list [--output <file>] [--console]");
             output.WriteLine("    - Lists all available certificates in Windows certificate store");
             output.WriteLine();
-            output.WriteLine("  PdfSigner.exe sign <input.pdf> <output.pdf> <certificate_identifier> [reason] [location] [--output <file>]");
+            output.WriteLine("  PdfSigner.exe sign <input.pdf> <output.pdf> <certificate_identifier> [reason] [location] [--output <file>] [--console]");
             output.WriteLine("    - Signs a PDF file using a certificate from Windows certificate store");
             output.WriteLine();
-            output.WriteLine("  PdfSigner.exe batch <input_pattern> <output_directory> <certificate_identifier> [reason] [location] [suffix] [--output <file>]");
+            output.WriteLine("  PdfSigner.exe batch <input_pattern> <output_directory> <certificate_identifier> [reason] [location] [suffix] [--output <file>] [--console]");
             output.WriteLine("    - Signs multiple PDF files matching a pattern");
             output.WriteLine();
-            output.WriteLine("  PdfSigner.exe verify <signed.pdf> [--output <file>]");
+            output.WriteLine("  PdfSigner.exe verify <signed.pdf> [--output <file>] [--console]");
             output.WriteLine("    - Verifies the signature of a signed PDF file");
             output.WriteLine();
             output.WriteLine("Global options:");
             output.WriteLine("  --output <file>, -o <file> - Write output to file instead of console");
+            output.WriteLine("  --console, -c              - Also write to console when using --output (dual output)");
             output.WriteLine();
             ShowSignUsage(output);
             output.WriteLine();
@@ -214,11 +222,13 @@ namespace PdfSignerApp
             output.WriteLine("Examples:");
             output.WriteLine("  PdfSigner.exe list");
             output.WriteLine("  PdfSigner.exe list --output certificates.txt");
+            output.WriteLine("  PdfSigner.exe list -o certificates.txt -c");
             output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"CN=John Doe\"");
             output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"John Doe\" \"Contract signature\" \"New York\"");
             output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"A6B149D4A2C7D5F3C5E777640B6534652A674040\"");
             output.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"localhost\"");
             output.WriteLine("  PdfSigner.exe batch \"documents/*.pdf\" \"output\" \"John Doe\" \"Batch signed\" \"Office\" \"-approved\" -o batch_log.txt");
+            output.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"localhost\" -o results.txt --console");
             output.WriteLine("  PdfSigner.exe verify signed_document.pdf");
             output.WriteLine("  PdfSigner.exe verify signed_document.pdf --output verification_result.txt");
         }

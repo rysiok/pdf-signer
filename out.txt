@@ -1,0 +1,32 @@
+PDF Signer using Windows Certificate Store
+=========================================
+Batch signing PDFs:
+Input pattern: d:\xxx\*.pdf
+Output directory: d:\out
+Certificate identifier: CED937EE2F3B69E1F59E56AE5F77ED060CD2A2B9
+Reason: Document digitally signed
+Location: PdfSigner by rysiok
+Output suffix: -sig
+
+Found certificate: C=PL, SERIALNUMBER=PNOPL-76091708291, SN=Krakowiak, G=Ryszard, CN=Ryszard Krakowiak
+Valid from: 2024-09-24 16:45:41 to 2027-10-22 23:59:59
+
+Found 13 PDF file(s) to sign
+
+1.pdf -> 1.pdf - status: failed (The keyset is not defined.)
+2.pdf -> 2.pdf - status: failed (The keyset is not defined.)
+3.pdf -> 3.pdf - status: failed (The keyset is not defined.)
+4.pdf -> 4.pdf - status: failed (The keyset is not defined.)
+5.pdf -> 5.pdf - status: failed (The keyset is not defined.)
+6.pdf -> 6.pdf - status: failed (The keyset is not defined.)
+7.pdf -> 7.pdf - status: failed (The keyset is not defined.)
+8.pdf -> 8.pdf - status: failed (The keyset is not defined.)
+Sendecki Radosław.pdf -> Sendecki Radosław.pdf - status: failed (The keyset is not defined.)
+Sendecki_Radoslaw_2024_12_6423233252.pdf -> Sendecki_Radoslaw_2024_12_6423233252.pdf - status: failed (The keyset is not defined.)
+Sikorski_Radoslaw_2024_12_5661514402.pdf -> Sikorski_Radoslaw_2024_12_5661514402.pdf - status: failed (The keyset is not defined.)
+Skiba_Piotr_2024_12_6692384993.pdf -> Skiba_Piotr_2024_12_6692384993.pdf - status: failed (The keyset is not defined.)
+Sobieski_Piotr_2024_12_7411893701.pdf -> Sobieski_Piotr_2024_12_7411893701.pdf - status: failed (The keyset is not defined.)
+Batch signing completed:
+  ✓ Successful: 0
+  ✗ Failed: 13
+  📁 Output directory: d:\out

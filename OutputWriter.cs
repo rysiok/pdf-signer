@@ -10,12 +10,14 @@ namespace PdfSignerApp
     {
         private readonly StreamWriter? _fileWriter;
         private readonly bool _writeToFile;
+        private readonly bool _alsoWriteToConsole;
 
-        public OutputWriter(string? outputFilePath = null)
+        public OutputWriter(string? outputFilePath = null, bool alsoWriteToConsole = false)
         {
             if (!string.IsNullOrEmpty(outputFilePath))
             {
                 _writeToFile = true;
+                _alsoWriteToConsole = alsoWriteToConsole;
                 _fileWriter = new StreamWriter(outputFilePath, false);
             }
         }
@@ -25,6 +27,11 @@ namespace PdfSignerApp
             if (_writeToFile && _fileWriter != null)
             {
                 _fileWriter.WriteLine(message);
+                
+                if (_alsoWriteToConsole)
+                {
+                    Console.WriteLine(message);
+                }
             }
             else
             {
@@ -37,6 +44,11 @@ namespace PdfSignerApp
             if (_writeToFile && _fileWriter != null)
             {
                 _fileWriter.Write(message);
+                
+                if (_alsoWriteToConsole)
+                {
+                    Console.Write(message);
+                }
             }
             else
             {

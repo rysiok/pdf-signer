@@ -25,7 +25,7 @@ if not exist "bin\Debug\net9.0\PdfSigner.dll" (
 )
 
 if "%~1"=="" (
-    echo Usage: sign.bat [command] [parameters] [--output file]
+    echo Usage: sign.bat [command] [parameters] [--output file] [--console]
     echo.
     echo Commands:
     echo   list                                         - List all available certificates
@@ -36,17 +36,21 @@ if "%~1"=="" (
     echo.
     echo Global Options:
     echo   --output file, -o file                       - Write output to file instead of console
+    echo   --console, -c                                - Also write to console when using --output
     echo.
     echo Examples:
     echo   sign.bat list
     echo   sign.bat list --output certificates.txt
+    echo   sign.bat list -o certificates.txt -c
     echo   sign.bat sign document.pdf signed_doc.pdf "localhost"
     echo   sign.bat sign contract.pdf signed_contract.pdf "John Doe" "Contract signature" "New York"
     echo   sign.bat sign document.pdf signed_doc.pdf "A6B149D4A2C7D5F3C5E777640B6534652A674040"
     echo   sign.bat sign document.pdf signed_doc.pdf "localhost" -o sign_log.txt
+    echo   sign.bat sign document.pdf signed_doc.pdf "localhost" -o sign_log.txt --console
     echo   sign.bat batch "*.pdf" "signed" "localhost"
     echo   sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch signed" "Office" "-approved"
     echo   sign.bat batch "*.pdf" "signed" "localhost" --output batch_log.txt
+    echo   sign.bat batch "*.pdf" "signed" "localhost" -o results.txt -c
     echo   sign.bat verify signed_document.pdf
     echo   sign.bat verify signed_document.pdf -o verification.txt
     echo.
