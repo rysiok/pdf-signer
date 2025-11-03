@@ -43,7 +43,7 @@ namespace PdfSignerApp
                 switch (args[0].ToLower())
                 {
                     case "list":
-                        signer.ListAvailableCertificates();
+                        signer.ListAvailableCertificates(output);
                         break;
 
                     case "sign":
@@ -113,7 +113,7 @@ namespace PdfSignerApp
             output.WriteLine($"Location: {location}");
             output.WriteLine();
 
-            signer.SignPdf(inputFile, outputFilePath, certificateSubject, reason, location);
+            signer.SignPdf(inputFile, outputFilePath, certificateSubject, reason, location, output);
         }
 
         static void BatchSignPdf(WindowsCertificatePdfSigner signer, string[] args, OutputWriter output)
@@ -134,7 +134,7 @@ namespace PdfSignerApp
             output.WriteLine($"Output suffix: {outputSuffix}");
             output.WriteLine();
 
-            signer.SignBatch(inputPattern, outputDirectory, batchCertificateSubject, batchReason, batchLocation, outputSuffix);
+            signer.SignBatch(inputPattern, outputDirectory, batchCertificateSubject, batchReason, batchLocation, outputSuffix, output);
         }
 
         static void VerifyPdf(WindowsCertificatePdfSigner signer, string[] args, OutputWriter output)

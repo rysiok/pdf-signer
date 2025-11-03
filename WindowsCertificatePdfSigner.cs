@@ -23,9 +23,12 @@ namespace PdfSignerApp
         /// <param name="certificateSubject">Subject name, partial subject name, or thumbprint to find the certificate</param>
         /// <param name="reason">Reason for signing (optional)</param>
         /// <param name="location">Location of signing (optional)</param>
+        /// <param name="output">Output writer for messages (optional, defaults to console)</param>
         public void SignPdf(string inputPath, string outputPath, string certificateSubject, 
-                           string reason = "Document signed", string location = "")
+                           string reason = "Document signed", string location = "", OutputWriter? output = null)
         {
+            output ??= new OutputWriter();
+            
             if (string.IsNullOrWhiteSpace(certificateSubject))
             {
                 throw new ArgumentException("Certificate identifier cannot be null or empty.", nameof(certificateSubject));
@@ -38,30 +41,30 @@ namespace PdfSignerApp
                 throw new InvalidOperationException($"Certificate with identifier '{certificateSubject}' not found in certificate store.");
             }
 
-            Console.WriteLine($"Found certificate: {certificate.Subject}");
-            Console.WriteLine($"Valid from: {certificate.NotBefore} to {certificate.NotAfter}");
+            output.WriteLine($"Found certificate: {certificate.Subject}");
+            output.WriteLine($"Valid from: {certificate.NotBefore} to {certificate.NotAfter}");
 
             // Sign the PDF
             SignPdfWithCertificate(inputPath, outputPath, certificate, reason, location);
             
             // Verify the signature (skip if certificate doesn't have SERIALNUMBER)
-            Console.WriteLine("Verifying signature...");
+            output.WriteLine("Verifying signature...");
             try
             {
                 var verificationResult = VerifySignature(outputPath, certificate);
-                Console.WriteLine($"  ✓ SERIALNUMBER verified: {verificationResult.SigningCertificateSerialNumber}");
-                Console.WriteLine("  ✓ Signature verified and authenticated");
-                Console.WriteLine("✓ PDF signed and verified successfully");
+                output.WriteLine($"  ✓ SERIALNUMBER verified: {verificationResult.SigningCertificateSerialNumber}");
+                output.WriteLine("  ✓ Signature verified and authenticated");
+                output.WriteLine("✓ PDF signed and verified successfully");
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("SERIALNUMBER property not found"))
             {
                 // Certificate doesn't have SERIALNUMBER in subject - signing succeeded but verification limited
-                Console.WriteLine("  ⚠ Warning: Certificate does not have SERIALNUMBER property - verification skipped");
-                Console.WriteLine("✓ PDF signed successfully (verification skipped)");
+                output.WriteLine("  ⚠ Warning: Certificate does not have SERIALNUMBER property - verification skipped");
+                output.WriteLine("✓ PDF signed successfully (verification skipped)");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"✗ PDF signed but verification failed: {ex.Message}");
+                output.WriteLine($"✗ PDF signed but verification failed: {ex.Message}");
                 throw new InvalidOperationException("Signature verification failed", ex);
             }
         }
@@ -75,9 +78,12 @@ namespace PdfSignerApp
         /// <param name="reason">Reason for signing (optional)</param>
         /// <param name="location">Location of signing (optional)</param>
         /// <param name="outputSuffix">Suffix to add to output filenames (optional, default: "-sig")</param>
+        /// <param name="output">Output writer for messages (optional, defaults to console)</param>
         public void SignBatch(string inputPattern, string outputDirectory, string certificateSubject, 
-                             string reason = "Document signed", string location = "", string outputSuffix = "-sig")
+                             string reason = "Document signed", string location = "", string outputSuffix = "-sig", OutputWriter? output = null)
         {
+            output ??= new OutputWriter();
+            
             // Find certificate in Windows certificate store
             var certificate = FindCertificate(certificateSubject);
             if (certificate == null)
@@ -85,15 +91,15 @@ namespace PdfSignerApp
                 throw new InvalidOperationException($"Certificate with identifier '{certificateSubject}' not found in certificate store.");
             }
 
-            Console.WriteLine($"Found certificate: {certificate.Subject}");
-            Console.WriteLine($"Valid from: {certificate.NotBefore} to {certificate.NotAfter}");
-            Console.WriteLine();
+            output.WriteLine($"Found certificate: {certificate.Subject}");
+            output.WriteLine($"Valid from: {certificate.NotBefore} to {certificate.NotAfter}");
+            output.WriteLine();
 
             // Create output directory if it doesn't exist
             if (!Directory.Exists(outputDirectory))
             {
                 Directory.CreateDirectory(outputDirectory);
-                Console.WriteLine($"Created output directory: {outputDirectory}");
+                output.WriteLine($"Created output directory: {outputDirectory}");
             }
 
             // Find matching PDF files
@@ -104,18 +110,18 @@ namespace PdfSignerApp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error finding files: {ex.Message}");
+                output.WriteLine($"Error finding files: {ex.Message}");
                 return;
             }
             
             if (inputFiles.Length == 0)
             {
-                Console.WriteLine($"No PDF files found matching pattern: {inputPattern}");
+                output.WriteLine($"No PDF files found matching pattern: {inputPattern}");
                 return;
             }
 
-            Console.WriteLine($"Found {inputFiles.Length} PDF file(s) to sign");
-            Console.WriteLine();
+            output.WriteLine($"Found {inputFiles.Length} PDF file(s) to sign");
+            output.WriteLine();
 
             // Sign each file
             int successCount = 0;
@@ -137,28 +143,28 @@ namespace PdfSignerApp
                     {
                         var verificationResult = VerifySignature(outputFile, certificate);
                         successCount++;
-//                        Console.WriteLine($"  ✓ SERIALNUMBER verified: {verificationResult.SigningCertificateSerialNumber}");
-//                        Console.WriteLine($"  ✓ Signature verified and authenticated");
-                        Console.WriteLine($"{Path.GetFileName(inputFile)} -> {outputFileName} - status: signed and verified");
+//                        output.WriteLine($"  ✓ SERIALNUMBER verified: {verificationResult.SigningCertificateSerialNumber}");
+//                        output.WriteLine($"  ✓ Signature verified and authenticated");
+                        output.WriteLine($"{Path.GetFileName(inputFile)} -> {outputFileName} - status: signed and verified");
                     }
                     catch (Exception verifyEx)
                     {
                         failureCount++;
-                        Console.WriteLine($"{Path.GetFileName(inputFile)} -> {outputFileName} - status: signed but verification failed ({verifyEx.Message})");
+                        output.WriteLine($"{Path.GetFileName(inputFile)} -> {outputFileName} - status: signed but verification failed ({verifyEx.Message})");
                     }
                 }
                 catch (Exception ex)
                 {
                     failureCount++;
-                    Console.WriteLine($"{Path.GetFileName(inputFile)} -> {Path.GetFileName(inputFile)} - status: failed ({ex.Message})");
+                    output.WriteLine($"{Path.GetFileName(inputFile)} -> {Path.GetFileName(inputFile)} - status: failed ({ex.Message})");
                 }
             }
 
             // Summary
-            Console.WriteLine("Batch signing completed:");
-            Console.WriteLine($"  ✓ Successful: {successCount}");
-            Console.WriteLine($"  ✗ Failed: {failureCount}");
-            Console.WriteLine($"  📁 Output directory: {outputDirectory}");
+            output.WriteLine("Batch signing completed:");
+            output.WriteLine($"  ✓ Successful: {successCount}");
+            output.WriteLine($"  ✗ Failed: {failureCount}");
+            output.WriteLine($"  📁 Output directory: {outputDirectory}");
         }
 
         /// <summary>
@@ -321,31 +327,34 @@ namespace PdfSignerApp
         /// <summary>
         /// Lists all available certificates in the Windows certificate store
         /// </summary>
+        /// <param name="output">Output writer for messages (optional, defaults to console)</param>
         /// <exception cref="InvalidOperationException">Thrown when certificate store access fails</exception>
-        public void ListAvailableCertificates()
+        public void ListAvailableCertificates(OutputWriter? output = null)
         {
-            Console.WriteLine("Available certificates in Current User Personal store:");
+            output ??= new OutputWriter();
+            
+            output.WriteLine("Available certificates in Current User Personal store:");
             try
             {
-                ListCertificatesInStore(StoreLocation.CurrentUser);
+                ListCertificatesInStore(StoreLocation.CurrentUser, output);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  Error accessing Current User store: {ex.Message}");
+                output.WriteLine($"  Error accessing Current User store: {ex.Message}");
             }
             
-            Console.WriteLine("\nAvailable certificates in Local Machine Personal store:");
+            output.WriteLine("\nAvailable certificates in Local Machine Personal store:");
             try
             {
-                ListCertificatesInStore(StoreLocation.LocalMachine);
+                ListCertificatesInStore(StoreLocation.LocalMachine, output);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  Error accessing Local Machine store: {ex.Message}");
+                output.WriteLine($"  Error accessing Local Machine store: {ex.Message}");
             }
         }
 
-        private void ListCertificatesInStore(StoreLocation location)
+        private void ListCertificatesInStore(StoreLocation location, OutputWriter output)
         {
             var store = new X509Store(StoreName.My, location);
             try
@@ -353,13 +362,13 @@ namespace PdfSignerApp
                 store.Open(OpenFlags.ReadOnly);
                 foreach (X509Certificate2 cert in store.Certificates)
                 {
-                    Console.WriteLine($"  Subject: {cert.Subject}");
-                    Console.WriteLine($"  Issuer: {cert.Issuer}");
-                    Console.WriteLine($"  Serial: {cert.SerialNumber}");
-                    Console.WriteLine($"  Valid: {cert.NotBefore} to {cert.NotAfter}");
-                    Console.WriteLine($"  Has Private Key: {cert.HasPrivateKey}");
-                    Console.WriteLine($"  Thumbprint: {cert.Thumbprint}");
-                    Console.WriteLine("  ---");
+                    output.WriteLine($"  Subject: {cert.Subject}");
+                    output.WriteLine($"  Issuer: {cert.Issuer}");
+                    output.WriteLine($"  Serial: {cert.SerialNumber}");
+                    output.WriteLine($"  Valid: {cert.NotBefore} to {cert.NotAfter}");
+                    output.WriteLine($"  Has Private Key: {cert.HasPrivateKey}");
+                    output.WriteLine($"  Thumbprint: {cert.Thumbprint}");
+                    output.WriteLine("  ---");
                 }
             }
             catch (Exception ex)
