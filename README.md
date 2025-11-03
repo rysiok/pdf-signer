@@ -1,6 +1,6 @@
 # PDF Signer with Windows Certificate Store
 
-This C# console application allows you to digitally sign PDF files using certificates from the Windows Certificate Store. It uses the iText7 library for PDF manipulation and BouncyCastle for cryptographic operations.
+This C# console application allows you to digitally sign PDF files using certificates from the Windows Certificate Store. It uses the iText library for PDF manipulation and BouncyCastle for cryptographic operations.
 
 ## Features
 
@@ -17,7 +17,7 @@ This C# console application allows you to digitally sign PDF files using certifi
 
 ## Prerequisites
 
-- .NET 8.0 or later
+- .NET 9.0 or later
 - Windows operating system (for certificate store access)
 - Valid X.509 certificate with private key in Windows Certificate Store
 - **Certificate must have SERIALNUMBER property in subject DN** (required for verification)
@@ -146,7 +146,7 @@ The application will look for certificates that:
 
 1. **Certificate Discovery**: The application searches Windows Certificate Store using the provided subject name
 2. **Certificate Validation**: It finds certificates with private keys and prefers valid (non-expired) ones
-3. **PDF Processing**: Uses iText7 to read the input PDF and prepare for signing
+3. **PDF Processing**: Uses iText to read the input PDF and prepare for signing
 4. **Digital Signing**: Applies the digital signature using BouncyCastle cryptographic operations
 5. **Signature Verification**: Automatically verifies the signature and validates serial number matching
 6. **Output Generation**: Saves the signed PDF to the specified output path
@@ -160,9 +160,9 @@ The application will look for certificates that:
 
 ## Dependencies
 
-- **iText7** (8.0.2): PDF manipulation library
-- **iText7.bouncy-castle-adapter** (8.0.2): Cryptographic operations
-- **.NET 8.0**: Runtime framework
+- **iText** (9.3.0): PDF manipulation library
+- **iText.bouncy-castle-adapter** (9.3.0): Cryptographic operations
+- **.NET 9.0**: Runtime framework
 
 ## Error Handling
 
@@ -245,11 +245,11 @@ build.bat clean        # Clean all outputs
 ```
 
 ### Output Locations
-- **Release**: `bin\Release\net8.0\win-x64\publish\PdfSigner.exe` (~40MB)
-- **Debug**: `bin\Debug\net8.0\win-x64\publish\PdfSigner.exe`
+- **Release**: `bin\Release\net9.0\win-x64\publish\PdfSigner.exe` (~40MB)
+- **Debug**: `bin\Debug\net9.0\win-x64\publish\PdfSigner.exe`
 
 The release executable is:
-- Self-contained (includes .NET 8.0 runtime)
+- Self-contained (includes .NET 9.0 runtime)
 - Single-file (no external dependencies)
 - Compressed for smaller size
 - Includes custom application icon
