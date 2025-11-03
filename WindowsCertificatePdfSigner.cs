@@ -634,7 +634,7 @@ namespace PdfSignerApp
             var chain = new IX509Certificate[] { bcCert };
 
             // Create external signature using .NET crypto classes directly
-            IExternalSignature externalSignature = new DotNetSignature(certificate, DigestAlgorithms.SHA256);
+            IExternalSignature externalSignature = new DotNetSignature(certificate, "SHA256");
 
             // Sign the document
             signer.SignDetached(externalSignature, chain, null, null, null, 0, iText.Signatures.PdfSigner.CryptoStandard.CMS);
