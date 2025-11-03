@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 
 namespace PdfSignerApp
 {
@@ -7,12 +8,31 @@ namespace PdfSignerApp
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("PDF Signer using Windows Certificate Store");
-            Console.WriteLine("=========================================");
+            // Parse output file option
+            string? outputFile = null;
+            var filteredArgs = args.ToList();
+            
+            for (int i = 0; i < filteredArgs.Count; i++)
+            {
+                if ((filteredArgs[i] == "--output" || filteredArgs[i] == "-o") && i + 1 < filteredArgs.Count)
+                {
+                    outputFile = filteredArgs[i + 1];
+                    filteredArgs.RemoveAt(i); // Remove --output
+                    filteredArgs.RemoveAt(i); // Remove the file path
+                    break;
+                }
+            }
+
+            args = filteredArgs.ToArray();
+
+            using var output = new OutputWriter(outputFile);
+
+            output.WriteLine("PDF Signer using Windows Certificate Store");
+            output.WriteLine("=========================================");
 
             if (args.Length == 0)
             {
-                ShowUsage();
+                ShowUsage(output);
                 return;
             }
 
@@ -29,192 +49,212 @@ namespace PdfSignerApp
                     case "sign":
                         if (args.Length < 4)
                         {
-                            Console.WriteLine("Error: Missing required parameters for signing.");
-                            ShowSignUsage();
+                            output.WriteLine("Error: Missing required parameters for signing.");
+                            ShowSignUsage(output);
                             return;
                         }
 
-                        var inputFile = args[1];
-                        var outputFile = args[2];
-                        var certificateSubject = args[3];
-                        var reason = args.Length > 4 ? args[4] : "Document digitally signed";
-                        var location = args.Length > 5 ? args[5] : "PdfSigner by rysiok";
-
-                        if (!File.Exists(inputFile))
-                        {
-                            Console.WriteLine($"Error: Input file '{inputFile}' not found.");
-                            return;
-                        }
-
-                        Console.WriteLine($"Signing PDF: {inputFile}");
-                        Console.WriteLine($"Output file: {outputFile}");
-                        Console.WriteLine($"Certificate identifier: {certificateSubject}");
-                        Console.WriteLine($"Reason: {reason}");
-                        Console.WriteLine($"Location: {location}");
-                        Console.WriteLine();
-
-                        signer.SignPdf(inputFile, outputFile, certificateSubject, reason, location);
+                        SignPdf(signer, args, output);
                         break;
 
                     case "batch":
                         if (args.Length < 4)
                         {
-                            Console.WriteLine("Error: Missing required parameters for batch signing.");
-                            ShowBatchUsage();
+                            output.WriteLine("Error: Missing required parameters for batch signing.");
+                            ShowBatchUsage(output);
                             return;
                         }
 
-                        var inputPattern = args[1];
-                        var outputDirectory = args[2];
-                        var batchCertificateSubject = args[3];
-                        var batchReason = args.Length > 4 ? args[4] : "Document digitally signed";
-                        var batchLocation = args.Length > 5 ? args[5] : "PdfSigner by rysiok";
-                        var outputSuffix = args.Length > 6 ? args[6] : "-sig";
-
-                        Console.WriteLine($"Batch signing PDFs:");
-                        Console.WriteLine($"Input pattern: {inputPattern}");
-                        Console.WriteLine($"Output directory: {outputDirectory}");
-                        Console.WriteLine($"Certificate identifier: {batchCertificateSubject}");
-                        Console.WriteLine($"Reason: {batchReason}");
-                        Console.WriteLine($"Location: {batchLocation}");
-                        Console.WriteLine($"Output suffix: {outputSuffix}");
-                        Console.WriteLine();
-
-                        signer.SignBatch(inputPattern, outputDirectory, batchCertificateSubject, batchReason, batchLocation, outputSuffix);
+                        BatchSignPdf(signer, args, output);
                         break;
 
                     case "verify":
                         if (args.Length < 2)
                         {
-                            Console.WriteLine("Error: Missing required parameter for verification.");
-                            ShowVerifyUsage();
+                            output.WriteLine("Error: Missing required parameter for verification.");
+                            ShowVerifyUsage(output);
                             return;
                         }
 
-                        var pdfToVerify = args[1];
-
-                        if (!File.Exists(pdfToVerify))
-                        {
-                            Console.WriteLine($"Error: PDF file '{pdfToVerify}' not found.");
-                            return;
-                        }
-
-                        Console.WriteLine($"Verifying PDF: {pdfToVerify}");
-                        Console.WriteLine();
-
-                        try
-                        {
-                            var verificationResult = signer.VerifyPdfSignature(pdfToVerify);
-                            
-                            Console.WriteLine($"Found {verificationResult.TotalSignatures} signature(s)");
-                            
-                            for (int i = 0; i < verificationResult.Signatures.Count; i++)
-                            {
-                                var sig = verificationResult.Signatures[i];
-                                Console.WriteLine($"\nVerifying signature {i + 1}: {sig.Name}");
-                                
-                                if (sig.IsValid)
-                                {
-                                    Console.WriteLine($"  ✓ Signature valid");
-                                    Console.WriteLine($"  ✓ Certificate: {sig.CertificateSubject}");
-                                    if (!string.IsNullOrEmpty(sig.SerialNumber))
-                                    {
-                                        Console.WriteLine($"  ✓ SERIALNUMBER: {sig.SerialNumber}");
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine($"  ✓ SERIALNUMBER: Not present in certificate subject");
-                                    }
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"  ✗ {sig.ErrorMessage}");
-                                }
-                            }
-                            
-                            Console.WriteLine();
-                            Console.WriteLine(verificationResult.IsValid ? "✓ PDF signature verification successful" : "✗ PDF signature verification failed");
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"✗ Verification failed: {ex.Message}");
-                        }
+                        VerifyPdf(signer, args, output);
                         break;
 
                     default:
-                        Console.WriteLine($"Unknown command: {args[0]}");
-                        ShowUsage();
+                        output.WriteLine($"Unknown command: {args[0]}");
+                        ShowUsage(output);
                         break;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                output.WriteLine($"Error: {ex.Message}");
+                output.WriteLine($"Stack trace: {ex.StackTrace}");
             }
         }
 
-        static void ShowUsage()
+        static void SignPdf(WindowsCertificatePdfSigner signer, string[] args, OutputWriter output)
         {
-            Console.WriteLine("Usage:");
-            Console.WriteLine("  PdfSigner.exe list");
-            Console.WriteLine("    - Lists all available certificates in Windows certificate store");
-            Console.WriteLine();
-            Console.WriteLine("  PdfSigner.exe sign <input.pdf> <output.pdf> <certificate_identifier> [reason] [location]");
-            Console.WriteLine("    - Signs a PDF file using a certificate from Windows certificate store");
-            Console.WriteLine();
-            Console.WriteLine("  PdfSigner.exe batch <input_pattern> <output_directory> <certificate_identifier> [reason] [location] [suffix]");
-            Console.WriteLine("    - Signs multiple PDF files matching a pattern");
-            Console.WriteLine();
-            Console.WriteLine("  PdfSigner.exe verify <signed.pdf>");
-            Console.WriteLine("    - Verifies the signature of a signed PDF file");
-            Console.WriteLine();
-            ShowSignUsage();
-            Console.WriteLine();
-            ShowBatchUsage();
-            Console.WriteLine();
-            Console.WriteLine("Examples:");
-            Console.WriteLine("  PdfSigner.exe list");
-            Console.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"CN=John Doe\"");
-            Console.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"John Doe\" \"Contract signature\" \"New York\"");
-            Console.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"A6B149D4A2C7D5F3C5E777640B6534652A674040\"");
-            Console.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"localhost\"");
-            Console.WriteLine("  PdfSigner.exe batch \"documents/*.pdf\" \"output\" \"John Doe\" \"Batch signed\" \"Office\" \"-approved\"");
-            Console.WriteLine("  PdfSigner.exe verify signed_document.pdf");
+            var inputFile = args[1];
+            var outputFilePath = args[2];
+            var certificateSubject = args[3];
+            var reason = args.Length > 4 ? args[4] : "Document digitally signed";
+            var location = args.Length > 5 ? args[5] : "PdfSigner by rysiok";
+
+            if (!File.Exists(inputFile))
+            {
+                output.WriteLine($"Error: Input file '{inputFile}' not found.");
+                return;
+            }
+
+            output.WriteLine($"Signing PDF: {inputFile}");
+            output.WriteLine($"Output file: {outputFilePath}");
+            output.WriteLine($"Certificate identifier: {certificateSubject}");
+            output.WriteLine($"Reason: {reason}");
+            output.WriteLine($"Location: {location}");
+            output.WriteLine();
+
+            signer.SignPdf(inputFile, outputFilePath, certificateSubject, reason, location);
         }
 
-        static void ShowSignUsage()
+        static void BatchSignPdf(WindowsCertificatePdfSigner signer, string[] args, OutputWriter output)
         {
-            Console.WriteLine("Sign parameters:");
-            Console.WriteLine("  <input.pdf>              - Path to the PDF file to sign");
-            Console.WriteLine("  <output.pdf>             - Path where the signed PDF will be saved");
-            Console.WriteLine("  <certificate_identifier> - Certificate identifier: subject name, partial name, or thumbprint");
-            Console.WriteLine("                             Examples:");
-            Console.WriteLine("                             - 'CN=John Doe' (full distinguished name)");
-            Console.WriteLine("                             - 'John Doe' (partial subject name)");
-            Console.WriteLine("                             - 'A6B149D4A2C7D5F3C5E777640B6534652A674040' (thumbprint)");
-            Console.WriteLine("  [reason]                 - Optional: Reason for signing (default: 'Document digitally signed')");
-            Console.WriteLine("  [location]               - Optional: Location of signing (default: computer name)");
+            var inputPattern = args[1];
+            var outputDirectory = args[2];
+            var batchCertificateSubject = args[3];
+            var batchReason = args.Length > 4 ? args[4] : "Document digitally signed";
+            var batchLocation = args.Length > 5 ? args[5] : "PdfSigner by rysiok";
+            var outputSuffix = args.Length > 6 ? args[6] : "-sig";
+
+            output.WriteLine($"Batch signing PDFs:");
+            output.WriteLine($"Input pattern: {inputPattern}");
+            output.WriteLine($"Output directory: {outputDirectory}");
+            output.WriteLine($"Certificate identifier: {batchCertificateSubject}");
+            output.WriteLine($"Reason: {batchReason}");
+            output.WriteLine($"Location: {batchLocation}");
+            output.WriteLine($"Output suffix: {outputSuffix}");
+            output.WriteLine();
+
+            signer.SignBatch(inputPattern, outputDirectory, batchCertificateSubject, batchReason, batchLocation, outputSuffix);
         }
 
-        static void ShowBatchUsage()
+        static void VerifyPdf(WindowsCertificatePdfSigner signer, string[] args, OutputWriter output)
         {
-            Console.WriteLine("Batch sign parameters:");
-            Console.WriteLine("  <input_pattern>          - Pattern to match PDF files:");
-            Console.WriteLine("                             - '*.pdf' (all PDFs in current directory)");
-            Console.WriteLine("                             - 'folder/*.pdf' (all PDFs in specific folder)");
-            Console.WriteLine("                             - 'documents/contract*.pdf' (matching pattern)");
-            Console.WriteLine("  <output_directory>       - Directory where signed PDFs will be saved");
-            Console.WriteLine("  <certificate_identifier> - Certificate identifier (same as single sign)");
-            Console.WriteLine("  [reason]                 - Optional: Reason for signing (default: 'Document digitally signed')");
-            Console.WriteLine("  [location]               - Optional: Location of signing (default: computer name)");
-            Console.WriteLine("  [suffix]                 - Optional: Suffix for output filenames (default: '-sig')");
+            var pdfToVerify = args[1];
+
+            if (!File.Exists(pdfToVerify))
+            {
+                output.WriteLine($"Error: PDF file '{pdfToVerify}' not found.");
+                return;
+            }
+
+            output.WriteLine($"Verifying PDF: {pdfToVerify}");
+            output.WriteLine();
+
+            try
+            {
+                var verificationResult = signer.VerifyPdfSignature(pdfToVerify);
+                
+                output.WriteLine($"Found {verificationResult.TotalSignatures} signature(s)");
+                
+                for (int i = 0; i < verificationResult.Signatures.Count; i++)
+                {
+                    var sig = verificationResult.Signatures[i];
+                    output.WriteLine($"\nVerifying signature {i + 1}: {sig.Name}");
+                    
+                    if (sig.IsValid)
+                    {
+                        output.WriteLine($"  ✓ Signature valid");
+                        output.WriteLine($"  ✓ Certificate: {sig.CertificateSubject}");
+                        if (!string.IsNullOrEmpty(sig.SerialNumber))
+                        {
+                            output.WriteLine($"  ✓ SERIALNUMBER: {sig.SerialNumber}");
+                        }
+                        else
+                        {
+                            output.WriteLine($"  ✓ SERIALNUMBER: Not present in certificate subject");
+                        }
+                    }
+                    else
+                    {
+                        output.WriteLine($"  ✗ {sig.ErrorMessage}");
+                    }
+                }
+                
+                output.WriteLine();
+                output.WriteLine(verificationResult.IsValid ? "✓ PDF signature verification successful" : "✗ PDF signature verification failed");
+            }
+            catch (Exception ex)
+            {
+                output.WriteLine($"✗ Verification failed: {ex.Message}");
+            }
         }
 
-        static void ShowVerifyUsage()
+        static void ShowUsage(OutputWriter output)
         {
-            Console.WriteLine("Verify parameters:");
-            Console.WriteLine("  <signed.pdf>             - Path to the signed PDF file to verify");
+            output.WriteLine("Usage:");
+            output.WriteLine("  PdfSigner.exe list [--output <file>]");
+            output.WriteLine("    - Lists all available certificates in Windows certificate store");
+            output.WriteLine();
+            output.WriteLine("  PdfSigner.exe sign <input.pdf> <output.pdf> <certificate_identifier> [reason] [location] [--output <file>]");
+            output.WriteLine("    - Signs a PDF file using a certificate from Windows certificate store");
+            output.WriteLine();
+            output.WriteLine("  PdfSigner.exe batch <input_pattern> <output_directory> <certificate_identifier> [reason] [location] [suffix] [--output <file>]");
+            output.WriteLine("    - Signs multiple PDF files matching a pattern");
+            output.WriteLine();
+            output.WriteLine("  PdfSigner.exe verify <signed.pdf> [--output <file>]");
+            output.WriteLine("    - Verifies the signature of a signed PDF file");
+            output.WriteLine();
+            output.WriteLine("Global options:");
+            output.WriteLine("  --output <file>, -o <file> - Write output to file instead of console");
+            output.WriteLine();
+            ShowSignUsage(output);
+            output.WriteLine();
+            ShowBatchUsage(output);
+            output.WriteLine();
+            output.WriteLine("Examples:");
+            output.WriteLine("  PdfSigner.exe list");
+            output.WriteLine("  PdfSigner.exe list --output certificates.txt");
+            output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"CN=John Doe\"");
+            output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"John Doe\" \"Contract signature\" \"New York\"");
+            output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"A6B149D4A2C7D5F3C5E777640B6534652A674040\"");
+            output.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"localhost\"");
+            output.WriteLine("  PdfSigner.exe batch \"documents/*.pdf\" \"output\" \"John Doe\" \"Batch signed\" \"Office\" \"-approved\" -o batch_log.txt");
+            output.WriteLine("  PdfSigner.exe verify signed_document.pdf");
+            output.WriteLine("  PdfSigner.exe verify signed_document.pdf --output verification_result.txt");
+        }
+
+        static void ShowSignUsage(OutputWriter output)
+        {
+            output.WriteLine("Sign parameters:");
+            output.WriteLine("  <input.pdf>              - Path to the PDF file to sign");
+            output.WriteLine("  <output.pdf>             - Path where the signed PDF will be saved");
+            output.WriteLine("  <certificate_identifier> - Certificate identifier: subject name, partial name, or thumbprint");
+            output.WriteLine("                             Examples:");
+            output.WriteLine("                             - 'CN=John Doe' (full distinguished name)");
+            output.WriteLine("                             - 'John Doe' (partial subject name)");
+            output.WriteLine("                             - 'A6B149D4A2C7D5F3C5E777640B6534652A674040' (thumbprint)");
+            output.WriteLine("  [reason]                 - Optional: Reason for signing (default: 'Document digitally signed')");
+            output.WriteLine("  [location]               - Optional: Location of signing (default: 'PdfSigner by rysiok')");
+        }
+
+        static void ShowBatchUsage(OutputWriter output)
+        {
+            output.WriteLine("Batch sign parameters:");
+            output.WriteLine("  <input_pattern>          - Pattern to match PDF files:");
+            output.WriteLine("                             - '*.pdf' (all PDFs in current directory)");
+            output.WriteLine("                             - 'folder/*.pdf' (all PDFs in specific folder)");
+            output.WriteLine("                             - 'documents/contract*.pdf' (matching pattern)");
+            output.WriteLine("  <output_directory>       - Directory where signed PDFs will be saved");
+            output.WriteLine("  <certificate_identifier> - Certificate identifier (same as single sign)");
+            output.WriteLine("  [reason]                 - Optional: Reason for signing (default: 'Document digitally signed')");
+            output.WriteLine("  [location]               - Optional: Location of signing (default: 'PdfSigner by rysiok')");
+            output.WriteLine("  [suffix]                 - Optional: Suffix for output filenames (default: '-sig')");
+        }
+
+        static void ShowVerifyUsage(OutputWriter output)
+        {
+            output.WriteLine("Verify parameters:");
+            output.WriteLine("  <signed.pdf>             - Path to the signed PDF file to verify");
         }
     }
 }
