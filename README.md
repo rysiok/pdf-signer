@@ -37,11 +37,14 @@ This C# console application allows you to digitally sign PDF files using certifi
 
 ### Global Options
 
-All commands support an optional output file parameter:
+All commands support optional output parameters:
 
 ```bash
 --output <file>    # Write output to file instead of console
 -o <file>          # Short form
+
+--console          # Also write to console when using --output (dual output)
+-c                 # Short form
 ```
 
 **Examples:**
@@ -49,15 +52,20 @@ All commands support an optional output file parameter:
 # Save certificate list to file
 dotnet run list --output certificates.txt
 
+# Save certificate list to file AND display on console
+dotnet run list -o certificates.txt -c
+
 # Save signing log
 dotnet run sign document.pdf signed.pdf "John Doe" -o sign_log.txt
 
-# Save batch operation results
-dotnet run batch "*.pdf" "output" "localhost" --output batch_results.txt
+# Save batch operation results with console progress
+dotnet run batch "*.pdf" "output" "localhost" --output batch_results.txt --console
 
 # Save verification results
 dotnet run verify signed.pdf -o verification.txt
 ```
+
+**Note:** The `--console/-c` option is useful for monitoring progress in real-time while keeping a log file for automation and auditing purposes.
 
 ### List Available Certificates
 
@@ -224,8 +232,8 @@ For easier usage, you can use the provided batch script:
 REM List certificates
 sign.bat list
 
-REM List certificates to file
-sign.bat list -o certificates.txt
+REM List certificates to file and console
+sign.bat list -o certificates.txt -c
 
 REM Sign a PDF using subject name
 sign.bat sign document.pdf signed_document.pdf "localhost"
@@ -236,9 +244,9 @@ sign.bat sign document.pdf signed_document.pdf "A6B149D4A2C7D5F3C5E777640B653465
 REM Sign with custom reason and location
 sign.bat sign contract.pdf signed_contract.pdf "John Doe" "Contract signature" "New York"
 
-REM Batch sign multiple PDFs with results log
-sign.bat batch "*.pdf" "signed" "localhost" --output batch_results.txt
-sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch processed" "Office" "-approved" -o batch_log.txt
+REM Batch sign multiple PDFs with results log and console progress
+sign.bat batch "*.pdf" "signed" "localhost" --output batch_results.txt --console
+sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch processed" "Office" "-approved" -o batch_log.txt -c
 
 REM Verify a signed PDF
 sign.bat verify signed_document.pdf
