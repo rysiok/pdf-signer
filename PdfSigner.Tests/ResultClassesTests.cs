@@ -7,6 +7,7 @@ namespace PdfSigner.Tests;
 /// <summary>
 /// Tests for result classes and data structures
 /// </summary>
+[Collection("Assembly Collection")]
 public class ResultClassesTests
 {
     [Fact]

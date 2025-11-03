@@ -10,6 +10,7 @@ namespace PdfSigner.Tests;
 /// <summary>
 /// Tests for PDF signature verification operations
 /// </summary>
+[Collection("Assembly Collection")]
 public class PdfVerificationTests : IDisposable
 {
     private readonly WindowsCertificatePdfSigner _signer;

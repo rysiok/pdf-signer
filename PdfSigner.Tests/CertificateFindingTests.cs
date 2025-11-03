@@ -9,6 +9,7 @@ namespace PdfSigner.Tests;
 /// <summary>
 /// Tests for certificate finding and validation methods
 /// </summary>
+[Collection("Assembly Collection")]
 public class CertificateFindingTests : IDisposable
 {
     private readonly WindowsCertificatePdfSigner _signer;

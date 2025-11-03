@@ -10,6 +10,7 @@ namespace PdfSigner.Tests;
 /// <summary>
 /// Tests for error scenarios and edge cases
 /// </summary>
+[Collection("Assembly Collection")]
 public class ErrorScenarioTests : IDisposable
 {
     private readonly WindowsCertificatePdfSigner _signer;
