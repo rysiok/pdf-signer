@@ -389,3 +389,5 @@ The design allows for easy extension to support additional certificate stores, s
 ## License
 
 This project is provided as-is for educational and development purposes.
+
+[GNU AGPL v3.0](https://www.gnu.org/licenses/agpl-3.0.html)
