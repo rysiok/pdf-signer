@@ -19,10 +19,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '9.0.x'
         
@@ -47,7 +47,7 @@ jobs:
         echo "VERSION=$version.$buildNumber" >> $env:GITHUB_OUTPUT
         
     - name: Upload Release Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: PdfSigner-v${{ steps.version.outputs.VERSION }}-win-x64
         path: bin/Release/net9.0/win-x64/publish/PdfSigner.exe
