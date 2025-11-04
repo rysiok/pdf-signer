@@ -50,6 +50,8 @@ dotnet test --filter "FullyQualifiedName~DoubleSign"        # Single test
 ```
 Current status: 82 passing, 0 skipped (all tests enabled as of v1.3.3)
 
+**Note**: FluentAssertions 8.x displays a license warning during test runs (Xceed Community License). This is expected and acceptable for non-commercial/personal projects. The warning does not affect test execution or results.
+
 ### Test Certificate Generation
 Tests use `TestCertificateGenerator.CreateCertificateWithSerialNumber()` to create BouncyCastle self-signed certs with custom SERIALNUMBER properties. Uses modern `X509CertificateLoader.LoadCertificate()` API (migrated from obsolete constructor in v1.3.3). Certificates are installed to Windows cert store during test setup and cleaned up via IDisposable pattern.
 
@@ -144,6 +146,7 @@ Target: >85% line coverage for WindowsCertificatePdfSigner.cs (currently 86.8%).
 - **Default Location**: "PdfSigner by rysiok" appears in PDF signature metadata
 - **Executable Size**: ~40MB compressed (Release), includes .NET runtime + all dependencies
 - **Latest Version**: v1.3.3 (November 2025) - Fixed obsolete API warnings, enabled all tests, improved multi-signature verification
+- **Test Dependencies**: Microsoft.NET.Test.Sdk 18.0.0, FluentAssertions 8.8.0 (with Xceed Community License)
 
 ## Quick Reference Commands
 ```powershell

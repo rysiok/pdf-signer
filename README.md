@@ -199,6 +199,14 @@ The application will look for certificates that:
 - **iText.bouncy-castle-adapter** (9.3.0): Cryptographic operations
 - **.NET 9.0**: Runtime framework with modern APIs (X509CertificateLoader)
 
+### Test Dependencies
+- **xUnit** (2.9.3): Test framework
+- **FluentAssertions** (8.8.0): Fluent assertion library (Xceed Community License - free for non-commercial use)
+- **Microsoft.NET.Test.Sdk** (18.0.0): Test platform for .NET
+- **Moq** (4.20.72): Mocking library for unit tests
+
+**Note**: FluentAssertions 8.x is governed by the Xceed Community License, which allows free use for non-commercial projects.
+
 ## Version History
 
 **v1.3.3** (November 2025)
@@ -206,6 +214,7 @@ The application will look for certificates that:
 - Enabled all 82 tests (previously 78 passing + 4 skipped)
 - Fixed multi-signature PDF verification logic (properly handles partial signatures)
 - Reduced build warnings from 3 to 1 (only platform-specific warning remains)
+- Upgraded test dependencies: Microsoft.NET.Test.Sdk 18.0.0, FluentAssertions 8.8.0
 
 **v1.3.2** (November 2025)
 - Added --console/-c option for dual output (file + console simultaneously)
