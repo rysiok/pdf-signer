@@ -60,7 +60,7 @@ dotnet run list -o certificates.txt -c
 dotnet run sign document.pdf signed.pdf "John Doe" -o sign_log.txt
 
 # Save batch operation results with console progress
-dotnet run batch "*.pdf" "output" "localhost" --output batch_results.txt --console
+dotnet run batch "*.pdf" "output" "selfsigned" --output batch_results.txt --console
 
 # Save verification results
 dotnet run verify signed.pdf -o verification.txt
@@ -105,7 +105,7 @@ dotnet run batch <input_pattern> <output_directory> <certificate_subject> [reaso
 - `<output.pdf>`: Path where the signed PDF will be saved
 - `<certificate_identifier>`: Certificate identifier - can be:
   - **Subject name**: Full distinguished name (e.g., "CN=John Doe, O=Company")
-  - **Partial subject name**: Part of the subject (e.g., "John Doe" or "localhost")
+  - **Partial subject name**: Part of the subject (e.g., "John Doe" or "selfsigned")
   - **Thumbprint**: Certificate thumbprint (e.g., "A6B149D4A2C7D5F3C5E777640B6534652A674040")
 - `[reason]` (optional): Reason for signing (default: "Document digitally signed")
 - `[location]` (optional): Location of signing (default: "PdfSigner by rysiok")
@@ -130,7 +130,7 @@ dotnet run sign contract.pdf signed_contract.pdf "John Doe" "Contract approval" 
 dotnet run sign document.pdf signed_document.pdf "A6 B1 49 D4 A2 C7 D5 F3 C5 E7 77 64 0B 65 34 65 2A 67 40 40"
 
 # Batch sign multiple files (uses default location "PdfSigner by rysiok")
-dotnet run batch "*.pdf" "signed_output" "localhost"
+dotnet run batch "*.pdf" "signed_output" "selfsigned"
 dotnet run batch "documents/*.pdf" "output" "John Doe" "Batch signed" "Office" "-approved"
 
 # Verify a signed PDF
@@ -268,7 +268,7 @@ REM List certificates to file and console
 sign.bat list -o certificates.txt -c
 
 REM Sign a PDF using subject name
-sign.bat sign document.pdf signed_document.pdf "localhost"
+sign.bat sign document.pdf signed_document.pdf "selfsigned"
 
 REM Sign using thumbprint with output log
 sign.bat sign document.pdf signed_document.pdf "A6B149D4A2C7D5F3C5E777640B6534652A674040" -o sign_log.txt
@@ -277,7 +277,7 @@ REM Sign with custom reason and location
 sign.bat sign contract.pdf signed_contract.pdf "John Doe" "Contract signature" "New York"
 
 REM Batch sign multiple PDFs with results log and console progress
-sign.bat batch "*.pdf" "signed" "localhost" --output batch_results.txt --console
+sign.bat batch "*.pdf" "signed" "selfsigned" --output batch_results.txt --console
 sign.bat batch "documents\*.pdf" "output" "John Doe" "Batch processed" "Office" "-approved" -o batch_log.txt -c
 
 REM Verify a signed PDF

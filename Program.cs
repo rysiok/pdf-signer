@@ -226,9 +226,9 @@ namespace PdfSignerApp
             output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"CN=John Doe\"");
             output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"John Doe\" \"Contract signature\" \"New York\"");
             output.WriteLine("  PdfSigner.exe sign document.pdf signed_document.pdf \"A6B149D4A2C7D5F3C5E777640B6534652A674040\"");
-            output.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"localhost\"");
+            output.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"selfsigned\"");
             output.WriteLine("  PdfSigner.exe batch \"documents/*.pdf\" \"output\" \"John Doe\" \"Batch signed\" \"Office\" \"-approved\" -o batch_log.txt");
-            output.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"localhost\" -o results.txt --console");
+            output.WriteLine("  PdfSigner.exe batch \"*.pdf\" \"signed\" \"selfsigned\" -o results.txt --console");
             output.WriteLine("  PdfSigner.exe verify signed_document.pdf");
             output.WriteLine("  PdfSigner.exe verify signed_document.pdf --output verification_result.txt");
         }
