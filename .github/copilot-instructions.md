@@ -19,8 +19,8 @@ stampingProperties.UseAppendMode();  // Critical: preserves existing signatures
 ```
 When signing already-signed PDFs, append mode is REQUIRED to maintain previous signatures. This is essential for qualified electronic signature workflows where multiple parties sign the same document.
 
-**Multi-Signature Verification Logic** (lines 520-615):
-The `VerifySignature` method iterates through ALL signatures to find the one matching the provided certificate. This is non-obvious: when a PDF has multiple signatures, only the latest covers the whole document. Earlier signatures become "partial" but remain cryptographically valid.
+**Multi-Signature Verification Logic** (lines 430-480):
+The `VerifyPdfSignature` method verifies ALL signatures in a PDF. Critical behavior: when a PDF has multiple signatures, only the latest signature covers the whole document. Earlier signatures become "partial" but remain cryptographically valid. The verification logic (as of v1.3.3) correctly handles this by only requiring the last signature to cover the whole document, while still verifying the cryptographic integrity of all signatures.
 
 **SERIALNUMBER as Identity** (lines 490-510):
 Verification relies on the SERIALNUMBER property in certificate subjects (e.g., `CN=Name, SERIALNUMBER=123456`). The `ExtractSerialNumberFromSubject` method handles multiple DN formats (comma, semicolon, OID.2.5.4.5) because Windows certificate stores can reformat subject strings.
@@ -48,10 +48,10 @@ dotnet test --verbosity minimal --nologo                    # Quick test run
 dotnet test --collect:"XPlat Code Coverage"                 # With coverage
 dotnet test --filter "FullyQualifiedName~DoubleSign"        # Single test
 ```
-Current status: 78 passing, 4 skipped (investigation needed for X509Certificate2.Subject format quirks)
+Current status: 82 passing, 0 skipped (all tests enabled as of v1.3.3)
 
 ### Test Certificate Generation
-Tests use `TestCertificateGenerator.CreateCertificateWithSerialNumber()` to create BouncyCastle self-signed certs with custom SERIALNUMBER properties. These are installed to Windows cert store during test setup and cleaned up via IDisposable pattern.
+Tests use `TestCertificateGenerator.CreateCertificateWithSerialNumber()` to create BouncyCastle self-signed certs with custom SERIALNUMBER properties. Uses modern `X509CertificateLoader.LoadCertificate()` API (migrated from obsolete constructor in v1.3.3). Certificates are installed to Windows cert store during test setup and cleaned up via IDisposable pattern.
 
 **Certificate Cleanup**: Test certificates should be automatically removed by the IDisposable pattern, but if test runs are interrupted or fail, certificates may accumulate in the Windows Certificate Store. To clean up orphaned test certificates:
 ```powershell
@@ -95,9 +95,9 @@ Searches CurrentUser store first, then LocalMachine. Returns first valid cert wi
 
 ### Test Organization Pattern
 - **PdfSigningTests.cs**: Single file operations, batch operations, certificate validation, double-signing
-- **PdfVerificationTests.cs**: Signature verification scenarios (4 tests currently skipped)
+- **PdfVerificationTests.cs**: Signature verification scenarios (all tests enabled as of v1.3.3)
 - **ErrorScenarioTests.cs**: Exception handling, invalid inputs
-- **Utilities/**: `TestCertificateGenerator` (BouncyCastle cert creation), `TestPdfGenerator` (iText7 test PDFs)
+- **Utilities/**: `TestCertificateGenerator` (BouncyCastle cert creation using X509CertificateLoader), `TestPdfGenerator` (iText7 test PDFs)
 
 Each test class implements `IDisposable` for cert cleanup and temp directory removal.
 
@@ -124,22 +124,26 @@ Uses `X509Store(StoreName.My, StoreLocation)` for certificate discovery. Require
 
 1. **Forgetting UseAppendMode()**: Without it, signing destroys existing signatures
 2. **SERIALNUMBER extraction complexity**: X509Certificate2.Subject doesn't preserve DN order reliably - always use `ExtractSerialNumberFromSubject()`
-3. **Verification after append**: The first signature won't "cover whole document" after second signature added - this is CORRECT behavior, not a bug
+3. **Verification after append**: The first signature won't "cover whole document" after second signature added - this is CORRECT behavior, not a bug (fixed in v1.3.3)
 4. **Test certificate lifecycle**: Always install certs to store AND track IDisposable cleanup to avoid cert store pollution between tests
 5. **Build configuration**: Always specify `PdfSigner.csproj` explicitly when building in directories with multiple projects
+6. **Using obsolete APIs**: Use `X509CertificateLoader.LoadCertificate()` instead of `new X509Certificate2()` constructor (migrated in v1.3.3)
+7. **SignatureInfo population order**: Always set CertificateSubject/SerialNumber BEFORE throwing exceptions to preserve diagnostic data (fixed in v1.3.3)
 
 ## Test Coverage Strategy
-Target: >85% line coverage for WindowsCertificatePdfSigner.cs (currently 86.8%). Focus on:
+Target: >85% line coverage for WindowsCertificatePdfSigner.cs (currently 86.8%). All 82 tests passing as of v1.3.3. Focus on:
 - Certificate finding edge cases (expired, no private key, multiple matches)
-- Signature verification with multiple signers
-- Error conditions (missing files, invalid PDFs, corrupt signatures)
+- Signature verification with multiple signers (properly handles partial signatures)
+- Error conditions (missing files, invalid PDFs, corrupt signatures, missing SERIALNUMBER)
 - Batch operation scenarios (empty patterns, mixed success/failure)
+- Multi-signature PDFs (append mode preserves earlier signatures)
 
 ## Application Identity & Branding
 - **Icon**: `icon.ico` - Blue document with signature checkmark (create-icon.ps1 to regenerate)
 - **Version Info**: Product name, version 1.0.0, copyright embedded in executable
 - **Default Location**: "PdfSigner by rysiok" appears in PDF signature metadata
 - **Executable Size**: ~40MB compressed (Release), includes .NET runtime + all dependencies
+- **Latest Version**: v1.3.3 (November 2025) - Fixed obsolete API warnings, enabled all tests, improved multi-signature verification
 
 ## Quick Reference Commands
 ```powershell

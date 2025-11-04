@@ -142,7 +142,7 @@ public static class TestCertificateGenerator
 
         // Convert to .NET X509Certificate2
         var certBytes = bouncyCastleCert.GetEncoded();
-        var cert = new X509Certificate2(certBytes);
+        var cert = X509CertificateLoader.LoadCertificate(certBytes);
 
         // Convert private key
         var rsaPrivateKey = DotNetUtilities.ToRSA((RsaPrivateCrtKeyParameters)keyPair.Private);

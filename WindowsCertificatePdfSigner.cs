@@ -426,11 +426,18 @@ namespace PdfSignerApp
                         }
 
                         // Verify signature integrity
+                        // Note: In a PDF with multiple signatures, only the latest signature covers the whole document.
+                        // Earlier signatures become "partial" but remain cryptographically valid.
+                        // We skip the "covers whole document" check for multi-signature PDFs to allow proper verification.
                         var signatureCoversWholeDocument = signatureUtil.SignatureCoversWholeDocument(signatureName);
-                        if (!signatureCoversWholeDocument)
+                        var isLastSignature = (i == signatureNames.Count - 1);
+                        
+                        if (!signatureCoversWholeDocument && isLastSignature)
                         {
-                            throw new InvalidOperationException($"Signature {signatureName} does not cover the whole document");
+                            // Only the last signature should cover the whole document
+                            throw new InvalidOperationException($"Signature {signatureName} (last signature) does not cover the whole document");
                         }
+                        // For non-last signatures, it's expected that they don't cover the whole document after new signatures are added
 
                         // Get the signing certificate from the PDF
                         var signingCerts = pkcs7.GetSignCertificateChain();
@@ -444,6 +451,10 @@ namespace PdfSignerApp
                         // Get certificate subject and extract SERIALNUMBER
                         var certSubject = pdfSigningCert.GetSubjectDN()?.ToString() ?? "Unknown";
                         var certSerialNumber = ExtractSerialNumberFromSubject(certSubject);
+                        
+                        // Set the subject even if verification fails
+                        signatureInfo.CertificateSubject = certSubject;
+                        signatureInfo.SerialNumber = certSerialNumber;
                         
                         // SERIALNUMBER property is required for verification
                         if (string.IsNullOrEmpty(certSerialNumber))
@@ -459,8 +470,6 @@ namespace PdfSignerApp
                         }
 
                         signatureInfo.IsValid = true;
-                        signatureInfo.CertificateSubject = certSubject;
-                        signatureInfo.SerialNumber = certSerialNumber;
                     }
                     catch (Exception ex)
                     {

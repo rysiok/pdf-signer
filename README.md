@@ -7,10 +7,11 @@ This C# console application allows you to digitally sign PDF files using certifi
 - **Certificate Discovery**: Automatically finds certificates from Windows Certificate Store (both Current User and Local Machine stores)
 - **PDF Signing**: Signs PDF files with digital signatures using X.509 certificates
 - **Signature Verification**: Automatically verifies signatures after signing and validates serial numbers
+- **Multi-Signature Support**: Properly handles PDFs with multiple signatures (append mode preserves all signatures)
 - **Batch Signing**: Sign multiple PDF files at once using pattern matching
 - **Certificate Listing**: Lists all available certificates with their details
 - **Command Line Interface**: Easy-to-use CLI for batch operations
-- **Output Redirection**: Optional file output for automation and logging
+- **Output Redirection**: Optional file output for automation and logging with dual console/file output
 - **Batch Processing**: Sign multiple PDF files with a single command
 - **Standalone Verification**: Verify signatures in existing signed PDF files
 - **Exception-Based Error Handling**: Uses exceptions for better library integration and error reporting
@@ -157,10 +158,11 @@ This will:
 - **Automatic Verification**: All signed PDFs are automatically verified after signing
 - **SERIALNUMBER Validation**: **Requires** SERIALNUMBER property in certificate subject DN for verification
 - **Serial Number Validation**: Compares the signing certificate SERIALNUMBER with the PDF signature
-- **Integrity Check**: Validates that signatures cover the complete document
-- **Multiple Signatures**: Handles PDFs with multiple signatures
+- **Integrity Check**: Validates signature integrity and authenticity
+- **Multiple Signatures**: Properly handles PDFs with multiple signatures (only latest must cover whole document)
 - **Detailed Reporting**: Shows certificate details and verification status for each signature
 - **Strict Requirements**: Verification fails if SERIALNUMBER property is missing from certificate
+- **Partial Signature Support**: Earlier signatures in multi-signature PDFs remain cryptographically valid even if they don't cover the complete document (correct behavior as of v1.3.3)
 ```
 
 ## Certificate Requirements
@@ -195,7 +197,28 @@ The application will look for certificates that:
 
 - **iText** (9.3.0): PDF manipulation library
 - **iText.bouncy-castle-adapter** (9.3.0): Cryptographic operations
-- **.NET 9.0**: Runtime framework
+- **.NET 9.0**: Runtime framework with modern APIs (X509CertificateLoader)
+
+## Version History
+
+**v1.3.3** (November 2025)
+- Fixed obsolete API warnings (migrated to X509CertificateLoader)
+- Enabled all 82 tests (previously 78 passing + 4 skipped)
+- Fixed multi-signature PDF verification logic (properly handles partial signatures)
+- Reduced build warnings from 3 to 1 (only platform-specific warning remains)
+
+**v1.3.2** (November 2025)
+- Added --console/-c option for dual output (file + console simultaneously)
+- Updated all documentation with new option
+
+**v1.3.1** (November 2025)
+- Fixed OutputWriter integration bug in core signer methods
+- All functions now properly use OutputWriter parameter
+
+**v1.0.0** (Initial Release)
+- Core PDF signing functionality
+- Certificate discovery and verification
+- Batch processing support
 
 ## Error Handling
 
@@ -326,17 +349,21 @@ PdfSigner/
 ├── sample.pdf               # Sample PDF for testing
 ├── README.md               # This documentation
 ├── .github/
-│   └── copilot-instructions.md  # AI coding agent guidelines
+│   ├── copilot-instructions.md  # AI coding agent guidelines
+│   ├── dependabot.yml       # Automated dependency updates
+│   └── workflows/           # GitHub Actions CI/CD
+│       ├── build-release.yml    # Build and test workflow
+│       └── release.yml          # Automated releases on tags
 ├── .vscode/                # VS Code configuration
 │   ├── launch.json         # Debug configurations
 │   └── tasks.json          # Build tasks
-└── PdfSigner.Tests/        # Test project
+└── PdfSigner.Tests/        # Test project (82 tests, 100% passing)
     ├── TestAssemblyFixture.cs  # Automatic certificate cleanup
     ├── PdfSigningTests.cs      # Signing operation tests
-    ├── PdfVerificationTests.cs # Verification tests
+    ├── PdfVerificationTests.cs # Verification tests (all enabled in v1.3.3)
     ├── ErrorScenarioTests.cs   # Error handling tests
     └── Utilities/             # Test helpers
-        ├── TestCertificateGenerator.cs
+        ├── TestCertificateGenerator.cs  # Uses X509CertificateLoader
         └── TestPdfGenerator.cs
 ```
 

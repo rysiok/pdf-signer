@@ -263,7 +263,7 @@ public class ErrorScenarioTests : IDisposable
 
         // Create a certificate without private key (public key only)
         var certWithPrivateKey = TestCertificateGenerator.CreateCertificateWithSerialNumber("PublicOnlyCert", "PUB123");
-        var publicOnlyCert = new X509Certificate2(certWithPrivateKey.RawData); // This removes the private key
+        var publicOnlyCert = X509CertificateLoader.LoadCertificate(certWithPrivateKey.RawData); // This removes the private key
         
         using var cleanup = TestCertificateGenerator.InstallCertificateToStore(publicOnlyCert);
 
