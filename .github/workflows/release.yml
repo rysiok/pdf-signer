@@ -90,18 +90,7 @@ jobs:
         - **Size**: ${{ steps.version.outputs.SIZE }}
         - **SHA256**: ``${{ steps.version.outputs.SHA256 }}``
         
-        ### Requirements
-        - Windows x64
-        - No .NET installation required (self-contained)
-        
-        ### Usage
-        ``````
-        PdfSigner.exe list
-        PdfSigner.exe sign input.pdf output.pdf "certificate"
-        PdfSigner.exe batch "*.pdf" "output_dir" "certificate"
-        ``````
-        
-        See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for detailed documentation.
+        See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for documentation.
         "@
         
         $notes | Out-File -FilePath release-notes.md -Encoding utf8
