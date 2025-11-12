@@ -81,14 +81,8 @@ jobs:
         }
         
         $notes = @"
-        ## PDF Signer ${{ steps.version.outputs.VERSION }}
         
         $whatsChanged
-        
-        ### Download
-        - **File**: PdfSigner.exe
-        - **Size**: ${{ steps.version.outputs.SIZE }}
-        - **SHA256**: ``${{ steps.version.outputs.SHA256 }}``
         
         See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for documentation.
         "@
