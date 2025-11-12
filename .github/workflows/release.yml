@@ -66,26 +66,23 @@ jobs:
       id: notes
       shell: pwsh
       run: |
-        # Get previous tag for changelog
-        $previousTag = git describe --tags --abbrev=0 HEAD^ 2>$null
-        if (-not $previousTag) {
-          $previousTag = git rev-list --max-parents=0 HEAD
-        }
+        # Get tag annotation message
+        $tagMessage = git tag -l --format='%(contents)' ${{ steps.version.outputs.VERSION }}
         
-        # Generate What's Changed section
-        $commits = git log --pretty=format:"- %s (%h)" "$previousTag..HEAD"
-        $whatsChanged = if ($commits) {
-          "## What's Changed`n`n$commits`n"
-        } else {
-          "## What's Changed`n`nInitial release`n"
-        }
-        
-        $notes = @"
-        
-        $whatsChanged
+        # If tag has annotation, use it; otherwise provide minimal note
+        if ($tagMessage -and $tagMessage.Trim()) {
+          $notes = @"
+        $tagMessage
         
         See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for documentation.
         "@
+        } else {
+          $notes = @"
+        Release ${{ steps.version.outputs.VERSION }}
+        
+        See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for documentation.
+        "@
+        }
         
         $notes | Out-File -FilePath release-notes.md -Encoding utf8
         
