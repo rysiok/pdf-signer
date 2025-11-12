@@ -85,13 +85,6 @@ jobs:
         
         $whatsChanged
         
-        ### Features
-        - Digital PDF signing using Windows Certificate Store
-        - Single file and batch signing support
-        - Certificate discovery and verification
-        - Support for multiple signatures per document
-        - SERIALNUMBER-based certificate verification
-        
         ### Download
         - **File**: PdfSigner.exe
         - **Size**: ${{ steps.version.outputs.SIZE }}
