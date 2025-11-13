@@ -23,6 +23,12 @@ jobs:
       with:
         fetch-depth: 0  # Fetch all history for proper changelog generation
         fetch-tags: true  # Fetch annotated tags with their full message content
+    
+    - name: Fetch tag annotations
+      shell: pwsh
+      run: |
+        # Explicitly fetch tags to ensure annotations are available
+        git fetch --tags --force
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
