@@ -21,8 +21,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
       with:
-        fetch-depth: 1  # Fetch all history for proper changelog generation
-        fetch-tags: true  # Fetch annotated tags with their full message content
+        fetch-depth: 0  # Fetch all history for proper changelog generation
     
     - name: Fetch tag annotations
       shell: pwsh
