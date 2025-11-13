@@ -20,8 +20,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      with:
-        fetch-depth: 0  # Fetch all history for proper changelog generation
     
     - name: Fetch tag annotations
       shell: pwsh
