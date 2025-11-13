@@ -67,13 +67,15 @@ jobs:
       id: notes
       shell: pwsh
       run: |
-        # Get tag annotation message
+        # Get tag annotation message (returns array of lines)
         $tagMessage = git tag -l --format='%(contents)' ${{ steps.version.outputs.VERSION }}
         
         # If tag has annotation, use it; otherwise provide minimal note
-        if ($tagMessage -and $tagMessage.Trim()) {
+        if ($tagMessage -and $tagMessage.Count -gt 0) {
+          # Join array lines with newlines to create full message
+          $fullMessage = $tagMessage -join "`n"
           $notes = @"
-        $tagMessage
+        $fullMessage
         
         See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for documentation.
         "@
