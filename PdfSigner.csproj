@@ -43,7 +43,7 @@
 
   <ItemGroup>
     <PackageReference Include="itext" Version="9.3.0" />
-    <PackageReference Include="itext.bouncy-castle-adapter" Version="9.3.0" />
+    <PackageReference Include="itext.bouncy-castle-adapter" Version="9.4.0" />
   </ItemGroup>
 
   <ItemGroup>
