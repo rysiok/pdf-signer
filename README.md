@@ -195,19 +195,26 @@ The application will look for certificates that:
 
 ## Dependencies
 
-- **iText** (9.3.0): PDF manipulation library
-- **iText.bouncy-castle-adapter** (9.3.0): Cryptographic operations
+- **iText** (9.4.0): PDF manipulation library
+- **iText.bouncy-castle-adapter** (9.4.0): Cryptographic operations
 - **.NET 9.0**: Runtime framework with modern APIs (X509CertificateLoader)
 
 ### Test Dependencies
 - **xUnit** (2.9.3): Test framework
 - **FluentAssertions** (8.8.0): Fluent assertion library (Xceed Community License - free for non-commercial use)
-- **Microsoft.NET.Test.Sdk** (18.0.0): Test platform for .NET
+- **Microsoft.NET.Test.Sdk** (18.0.1): Test platform for .NET
 - **Moq** (4.20.72): Mocking library for unit tests
 
 **Note**: FluentAssertions 8.x is governed by the Xceed Community License, which allows free use for non-commercial projects.
 
 ## Version History
+
+**v1.3.6** (November 2025)
+- Upgraded iText from 9.3.0 to 9.4.0 (advanced page resizing, signature profiles)
+- Upgraded iText.bouncy-castle-adapter from 9.3.0 to 9.4.0 (API compatibility)
+- Upgraded Microsoft.NET.Test.Sdk from 18.0.0 to 18.0.1 (code coverage fix)
+- Upgraded actions/checkout from v5 to v6 in CI/CD workflows (Node.js 24 support)
+- All 82 tests passing with updated dependencies
 
 **v1.3.3** (November 2025)
 - Fixed obsolete API warnings (migrated to X509CertificateLoader)

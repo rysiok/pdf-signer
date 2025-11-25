@@ -1,7 +1,7 @@
 # PDF Signer with Windows Certificate Store - AI Coding Guide
 
 ## Project Overview
-Console application for digitally signing PDFs using Windows Certificate Store certificates. Core tech: .NET 9.0, iText 9.3.0, BouncyCastle for cryptography. Single-file standalone executable (~40MB) with custom icon, comprehensive test suite (XUnit, FluentAssertions), and professional branding.
+Console application for digitally signing PDFs using Windows Certificate Store certificates. Core tech: .NET 9.0, iText 9.4.0, BouncyCastle for cryptography. Single-file standalone executable (~40MB) with custom icon, comprehensive test suite (XUnit, FluentAssertions), and professional branding.
 
 ## Architecture & Critical Patterns
 
@@ -40,7 +40,7 @@ Output: `bin\Release\net9.0\win-x64\publish\PdfSigner.exe`
 - Release: `PublishSingleFile=true`, `EnableCompressionInSingleFile=true`
 - Icon: `icon.ico` (blue document with signature checkmark)
 - Version: 1.0.0.0, Product: "PDF Signer with Windows Certificate Store"
-- No trimming (iText 9.3.0 uses reflection extensively)
+- No trimming (iText 9.4.0 uses reflection extensively)
 
 ### Running Tests
 ```powershell
@@ -145,8 +145,8 @@ Target: >85% line coverage for WindowsCertificatePdfSigner.cs (currently 86.8%).
 - **Version Info**: Product name, version 1.0.0, copyright embedded in executable
 - **Default Location**: "PdfSigner by rysiok" appears in PDF signature metadata
 - **Executable Size**: ~40MB compressed (Release), includes .NET runtime + all dependencies
-- **Latest Version**: v1.3.3 (November 2025) - Fixed obsolete API warnings, enabled all tests, improved multi-signature verification
-- **Test Dependencies**: Microsoft.NET.Test.Sdk 18.0.0, FluentAssertions 8.8.0 (with Xceed Community License)
+- **Latest Version**: v1.3.6 (November 2025) - Upgraded dependencies: iText 9.4.0, Microsoft.NET.Test.Sdk 18.0.1, actions/checkout v6
+- **Test Dependencies**: Microsoft.NET.Test.Sdk 18.0.1, FluentAssertions 8.8.0 (with Xceed Community License)
 
 ## Quick Reference Commands
 ```powershell
